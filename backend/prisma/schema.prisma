@@ -1,0 +1,84 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model CheckIn {
+  id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  sessionId         String   @map("session_id") @db.Uuid
+  checkInDate       DateTime @map("check_in_date") @db.Date
+  sleepHours        Decimal  @map("sleep_hours") @db.Decimal(4, 2)
+  stressLevel       Int      @map("stress_level") @db.SmallInt
+  moodLevel         Int      @map("mood_level") @db.SmallInt
+  teamConflictLevel Int      @map("team_conflict_level") @db.SmallInt
+  fatigue           Int      @db.SmallInt
+  description       String?  @db.Text
+  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  stressOption       StressLevelOption       @relation(fields: [stressLevel], references: [value], onDelete: NoAction, onUpdate: NoAction, map: "check_ins_stress_level_fk")
+  moodOption         MoodLevelOption         @relation(fields: [moodLevel], references: [value], onDelete: NoAction, onUpdate: NoAction, map: "check_ins_mood_level_fk")
+  teamConflictOption TeamConflictLevelOption @relation(fields: [teamConflictLevel], references: [value], onDelete: NoAction, onUpdate: NoAction, map: "check_ins_team_conflict_level_fk")
+  fatigueOption      FatigueOption           @relation(fields: [fatigue], references: [value], onDelete: NoAction, onUpdate: NoAction, map: "check_ins_fatigue_fk")
+  actions            CheckInAction[]
+
+  @@unique([sessionId, checkInDate], map: "check_ins_session_date_unique")
+  @@map("check_ins")
+}
+
+model StressLevelOption {
+  value    Int       @id @db.SmallInt
+  label    String    @unique(map: "stress_level_options_label_key") @db.Text
+  checkIns CheckIn[]
+
+  @@map("stress_level_options")
+}
+
+model MoodLevelOption {
+  value    Int       @id @db.SmallInt
+  label    String    @unique(map: "mood_level_options_label_key") @db.Text
+  checkIns CheckIn[]
+
+  @@map("mood_level_options")
+}
+
+model TeamConflictLevelOption {
+  value    Int       @id @db.SmallInt
+  label    String    @unique(map: "team_conflict_level_options_label_key") @db.Text
+  checkIns CheckIn[]
+
+  @@map("team_conflict_level_options")
+}
+
+model FatigueOption {
+  value    Int       @id @db.SmallInt
+  label    String    @unique(map: "fatigue_options_label_key") @db.Text
+  checkIns CheckIn[]
+
+  @@map("fatigue_options")
+}
+
+model CheckInAction {
+  id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  checkInId        String    @map("check_in_id") @db.Uuid
+  evaluationKey    String    @map("evaluation_key") @db.Text
+  actionCode       String    @map("action_code") @db.Text
+  reasonCode       String    @map("reason_code") @db.Text
+  rulesetVersion   String    @map("ruleset_version") @db.Text
+  forecastSnapshot Json      @map("forecast_snapshot") @db.JsonB
+  status           String    @default("suggested") @db.Text
+  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  acknowledgedAt   DateTime? @map("acknowledged_at") @db.Timestamptz(6)
+  resolvedAt       DateTime? @map("resolved_at") @db.Timestamptz(6)
+
+  checkIn CheckIn @relation(fields: [checkInId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "check_in_actions_check_in_id_fkey")
+
+  @@unique([checkInId, evaluationKey, actionCode], map: "check_in_actions_evaluation_action_key")
+  @@index([checkInId, createdAt(sort: Desc)], map: "check_in_actions_check_in_created_idx")
+  @@map("check_in_actions")
+}

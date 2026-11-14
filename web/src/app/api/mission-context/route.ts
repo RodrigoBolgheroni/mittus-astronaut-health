@@ -1,8 +1,8 @@
 import type { NextRequest } from "next/server";
 
-import { DatabaseNotConfiguredError } from "@/lib/db";
+import { getMissionContext } from "@/lib/mission/mission-context";
 import { isMissionPhase, MISSION_PHASES } from "@/lib/mission/mission-config";
-import { getMissionContext, MissionNotRegisteredError } from "@/lib/mission/mission-context";
+import { SESSION_COOKIE, verifySessionToken } from "@/lib/session";
 
 /** GET /api/mission-context?phase=in_orbit|return_to_earth */
 export async function GET(request: NextRequest) {
@@ -13,19 +13,15 @@ export async function GET(request: NextRequest) {
       { status: 400 },
     );
   }
-  try {
-    // The session cookie is not implemented yet, so every request uses the
-    // default mission. Pass the session id here once it exists.
-    return Response.json(await getMissionContext(phase, null));
-  } catch (error) {
-    if (error instanceof MissionNotRegisteredError) {
-      return Response.json({ error: "mission_not_registered" }, { status: 404 });
-    }
-    if (error instanceof DatabaseNotConfiguredError) {
-      console.error(error);
-      return Response.json({ error: "database_not_configured" }, { status: 503 });
-    }
-    console.error("Mission context unavailable:", error);
-    return Response.json({ error: "mission_context_unavailable" }, { status: 503 });
+  // Sessions without a valid cookie (or without SESSION_SECRET configured
+  // here) see the demo mission.
+  const sessionId = verifySessionToken(
+    request.cookies.get(SESSION_COOKIE)?.value,
+    process.env.SESSION_SECRET,
+  );
+  const context = await getMissionContext(phase, sessionId);
+  if (!context) {
+    return Response.json({ error: "phase_not_in_mission", phase }, { status: 404 });
   }
+  return Response.json(context, { headers: { "Cache-Control": "private, no-store" } });
 }

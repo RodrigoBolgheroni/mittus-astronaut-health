@@ -9,21 +9,16 @@ import {
   WHERE_THE_ISS_URL,
   type IssPosition,
 } from "./live-position";
-import { CABIN_TEMPERATURE, PHASE_LABELS, PHASE_STATUS, VEHICLE, type MissionPhase } from "./mission-config";
-import type { MissionLegRecord, Place } from "./mission-record";
-import { loadMissionLeg } from "./mission-repository";
+import { MISSION, type MissionPhase } from "./mission-config";
+import type { DepartureTimeSource, MissionLeg, MissionPlace } from "./mission-registry";
+import { getMissionLeg } from "./mission-store";
 
-/** Coordinates of a departure or destination place. */
-export type PlaceCoordinates = {
+/** Coordinates of a departure or destination point. */
+export type PointCoordinates = {
   latitude: number;
   longitude: number;
-  /** UTC time of the position for a moving place (the ISS); null for a fixed point. */
+  /** UTC time of the position for a moving point; null for a fixed point. */
   asOf: string | null;
-  /**
-   * wheretheiss / wheretheiss_snapshot: the ISS, resolved live.
-   * ll2 / mission_registration / manual: fixed point and where it came from.
-   * simulated: fixed point made up for the demo.
-   */
   source: "wheretheiss" | "wheretheiss_snapshot" | "ll2" | "mission_registration" | "manual" | "simulated";
   label: string;
   sourceUrl: string | null;
@@ -35,14 +30,19 @@ export type MissionContext = {
   phaseLabel: string;
   status: string;
   vehicle: string;
-  mission: { code: string; name: string };
-  /** Where this leg departs from. */
+  mission: {
+    code: string;
+    name: string;
+    /** "built_in" when the database could not be read. */
+    registrySource: "database" | "built_in";
+  };
+  /** Where this leg started. */
   departure: {
     name: string;
-    /** UTC departure time; null when not registered. */
+    /** UTC departure time (launch, undocking...); null when not registered. */
     departedAt: string | null;
-    departedAtSource: "ll2" | "mission_registration" | "manual" | "simulated" | null;
-    coordinates: PlaceCoordinates;
+    departedAtSource: DepartureTimeSource | null;
+    coordinates: PointCoordinates;
   };
   /** Where the craft is now. */
   location: {
@@ -59,7 +59,7 @@ export type MissionContext = {
   destination: {
     name: string;
     description: string;
-    coordinates: PlaceCoordinates;
+    coordinates: PointCoordinates;
     /** Great-circle distance over the surface from the craft; 0 when docked. */
     distanceKm: number;
   };
@@ -75,30 +75,68 @@ export type MissionContext = {
   missionReference: { label: string; url: string } | null;
 };
 
-/** No mission (or no leg for the phase) is registered in the database. */
-export class MissionNotRegisteredError extends Error {
-  constructor(phase: MissionPhase) {
-    super(`No mission registered for phase ${phase}`);
-  }
-}
-
-const ISS_LABELS = {
+const POSITION_LABELS = {
   wheretheiss: "Live ISS position from wheretheiss.at",
   wheretheiss_snapshot: "ISS position from a saved wheretheiss.at sample",
 } as const;
 
-/** Fetches the ISS position once per request, only if the leg needs it. */
+/** Fetches the ISS position once per request, only if something needs it. */
 function issLoader(): () => Promise<IssPosition> {
   let pending: Promise<IssPosition> | null = null;
   return () => (pending ??= getIssPosition());
 }
 
-function round(value: number, digits: number): number {
-  const f = 10 ** digits;
-  return Math.round(value * f) / f;
+async function buildLocation(
+  leg: MissionLeg,
+  iss: () => Promise<IssPosition>,
+): Promise<MissionContext["location"]> {
+  const config = MISSION.phases[leg.phase];
+  const position = config.position;
+  if (position.kind === "iss_live") {
+    const pos = await iss();
+    return {
+      latitude: round(pos.latitude, 3),
+      longitude: round(pos.longitude, 3),
+      altitudeKm: round(pos.altitudeKm, 1),
+      asOf: pos.epoch,
+      source: pos.source,
+      label: POSITION_LABELS[pos.source],
+      sourceUrl: WHERE_THE_ISS_URL,
+    };
+  }
+  const noradId = leg.mission.noradId;
+  if (noradId !== null) {
+    try {
+      const pos = await getSpacecraftPosition(noradId);
+      return {
+        latitude: round(pos.latitude, 3),
+        longitude: round(pos.longitude, 3),
+        altitudeKm: round(pos.altitudeKm, 1),
+        asOf: pos.epoch,
+        source: pos.source,
+        label: `${config.vehicle} position computed from its orbital elements (CelesTrak)`,
+        sourceUrl: celestrakUrl(noradId),
+      };
+    } catch (error) {
+      console.warn(`No CelesTrak position for NORAD ${noradId} - using the simulated point:`, error);
+    }
+  }
+  return {
+    latitude: position.latitude,
+    longitude: position.longitude,
+    altitudeKm: position.altitudeKm,
+    asOf: null,
+    source: "simulated",
+    label: `Simulated: ${position.description}`,
+    sourceUrl: null,
+  };
 }
 
-async function placeCoordinates(place: Place, iss: () => Promise<IssPosition>): Promise<PlaceCoordinates> {
+/** Coordinates of a registered place: fixed as stored, tracked resolved live. */
+async function buildPointCoordinates(
+  place: MissionPlace,
+  iss: () => Promise<IssPosition>,
+): Promise<PointCoordinates> {
   if (place.kind === "fixed") {
     return {
       latitude: place.latitude,
@@ -115,56 +153,13 @@ async function placeCoordinates(place: Place, iss: () => Promise<IssPosition>): 
     longitude: round(pos.longitude, 3),
     asOf: pos.epoch,
     source: pos.source,
-    label: ISS_LABELS[pos.source],
+    label: POSITION_LABELS[pos.source],
     sourceUrl: WHERE_THE_ISS_URL,
   };
 }
 
-async function buildLocation(
-  record: MissionLegRecord,
-  iss: () => Promise<IssPosition>,
-): Promise<MissionContext["location"]> {
-  const position = record.position;
-  switch (position.kind) {
-    case "simulated":
-      return {
-        latitude: position.latitude,
-        longitude: position.longitude,
-        altitudeKm: position.altitudeKm,
-        asOf: null,
-        source: "simulated",
-        label: `Simulated: ${position.description}`,
-        sourceUrl: null,
-      };
-    case "spacecraft_tle": {
-      const pos = await getSpacecraftPosition(position.noradId);
-      return {
-        latitude: round(pos.latitude, 3),
-        longitude: round(pos.longitude, 3),
-        altitudeKm: round(pos.altitudeKm, 1),
-        asOf: pos.epoch,
-        source: pos.source,
-        label: `${VEHICLE} position computed from its orbital elements (CelesTrak)`,
-        sourceUrl: celestrakUrl(position.noradId),
-      };
-    }
-    case "iss": {
-      const pos = await iss();
-      return {
-        latitude: round(pos.latitude, 3),
-        longitude: round(pos.longitude, 3),
-        altitudeKm: round(pos.altitudeKm, 1),
-        asOf: pos.epoch,
-        source: pos.source,
-        label: ISS_LABELS[pos.source],
-        sourceUrl: WHERE_THE_ISS_URL,
-      };
-    }
-  }
-}
-
 function buildCabinTemperature(phase: MissionPhase): MissionContext["cabinTemperature"] {
-  const config = CABIN_TEMPERATURE[phase];
+  const config = MISSION.phases[phase].cabinTemperature;
   if (config.kind === "simulated") {
     return {
       celsius: config.celsius,
@@ -186,43 +181,51 @@ function buildCabinTemperature(phase: MissionPhase): MissionContext["cabinTemper
   };
 }
 
-/**
- * Mission context of a session for one phase. `sessionId` selects the
- * mission linked in session_missions; null uses the demo mission.
- */
-export async function getMissionContext(
-  phase: MissionPhase,
-  sessionId: string | null = null,
-): Promise<MissionContext> {
-  const record = await loadMissionLeg(phase, sessionId);
-  if (!record) throw new MissionNotRegisteredError(phase);
+function round(value: number, digits: number): number {
+  const f = 10 ** digits;
+  return Math.round(value * f) / f;
+}
 
+export async function buildMissionContext(leg: MissionLeg): Promise<MissionContext> {
+  const config = MISSION.phases[leg.phase];
   const iss = issLoader();
-  const [departureCoordinates, location, destinationCoordinates] = await Promise.all([
-    placeCoordinates(record.departure.place, iss),
-    buildLocation(record, iss),
-    placeCoordinates(record.destination.place, iss),
+  const [location, departureCoordinates, destinationCoordinates] = await Promise.all([
+    buildLocation(leg, iss),
+    buildPointCoordinates(leg.departure.place, iss),
+    buildPointCoordinates(leg.destination.place, iss),
   ]);
   return {
-    phase,
-    phaseLabel: PHASE_LABELS[phase],
-    status: PHASE_STATUS[phase],
-    vehicle: VEHICLE,
-    mission: { code: record.mission.code, name: record.mission.name },
+    phase: leg.phase,
+    phaseLabel: config.label,
+    status: config.status,
+    vehicle: config.vehicle,
+    mission: { code: leg.mission.code, name: leg.mission.name, registrySource: leg.mission.origin },
     departure: {
-      name: record.departure.place.name,
-      departedAt: record.departure.departedAt,
-      departedAtSource: record.departure.departedAtSource,
+      name: leg.departure.place.name,
+      departedAt: leg.departure.at,
+      departedAtSource: leg.departure.atSource,
       coordinates: departureCoordinates,
     },
     location,
     destination: {
-      name: record.destination.place.name,
-      description: record.destination.description,
+      name: leg.destination.place.name,
+      description: leg.destination.description,
       coordinates: destinationCoordinates,
       distanceKm: round(surfaceDistanceKm(location, destinationCoordinates), 1),
     },
-    cabinTemperature: buildCabinTemperature(phase),
-    missionReference: record.mission.reference,
+    cabinTemperature: buildCabinTemperature(leg.phase),
+    missionReference: leg.mission.reference,
   };
+}
+
+/**
+ * Mission context of `phase` for the session's mission (or the demo mission).
+ * Returns null when that mission has no leg for the phase.
+ */
+export async function getMissionContext(
+  phase: MissionPhase,
+  sessionId: string | null = null,
+): Promise<MissionContext | null> {
+  const leg = await getMissionLeg(phase, sessionId);
+  return leg ? buildMissionContext(leg) : null;
 }
