@@ -1,6 +1,6 @@
 # Cadastro da missão — banco e API
 
-O cadastro da missão diz **de onde cada trecho parte e para onde vai**. A **posição atual** da nave não fica no banco: a rota consulta na hora (OEM da ISS da NASA enquanto a nave está acoplada; simulada no retorno).
+O cadastro da missão diz **de onde cada trecho parte e para onde vai**. A **posição atual** da nave não fica no banco: a rota consulta na hora (a ISS pela wheretheiss.at enquanto a nave está acoplada; no retorno, o TLE da CelesTrak se a missão tiver `norad_id`, senão um ponto simulado). Detalhes em [Posição da nave e fontes externas](mission-context-backend.md).
 
 Migração: [`supabase/migrations/20261114220000_create_missions.sql`](../supabase/migrations/20261114220000_create_missions.sql)
 
@@ -71,6 +71,5 @@ Senhas com caracteres especiais (`@`, `#`, `/`, `%`) precisam estar codificadas 
 
 ## Fora deste recorte
 
-- **Posição em voo livre.** Usar CelesTrak + SGP4 com `norad_id` quando a nave não estiver acoplada.
 - **Prisma do backend.** O backend não usa estas tabelas, por isso elas não estão em `backend/prisma/schema.prisma`. Não rode `prisma db push` contra o Supabase: o comando tentaria remover tabelas que não estão no schema.
 - **Criação do vínculo.** Nenhuma rota grava em `session_missions` ainda; o vínculo é feito por SQL.

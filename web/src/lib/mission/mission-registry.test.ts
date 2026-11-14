@@ -80,6 +80,11 @@ describe("legFromRow", () => {
     assert.equal(leg.departure.place.kind === "fixed" && leg.departure.place.latitude, 28.5);
   });
 
+  it("reads the craft's NORAD id, also when the driver returns it as a string", () => {
+    assert.equal(legFromRow({ ...ROW, norad_id: null }).mission.noradId, null);
+    assert.equal(legFromRow({ ...ROW, norad_id: "100882" as unknown as number }).mission.noradId, 100882);
+  });
+
   it("rejects an unknown tracked object", () => {
     assert.throws(() => legFromRow({ ...ROW, dst_tracked_object: "tiangong" }), /Unsupported tracked object/);
   });

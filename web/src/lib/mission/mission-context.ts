@@ -2,7 +2,13 @@ import "server-only";
 
 import cabinSample from "@/data/iss-cabin-temperature.json";
 import { surfaceDistanceKm } from "./geo";
-import { getIssPosition, ISS_OEM_URL, type IssPosition } from "./iss-position";
+import {
+  celestrakUrl,
+  getIssPosition,
+  getSpacecraftPosition,
+  WHERE_THE_ISS_URL,
+  type IssPosition,
+} from "./live-position";
 import { MISSION, type MissionPhase } from "./mission-config";
 import type { DepartureTimeSource, MissionLeg, MissionPlace } from "./mission-registry";
 import { getMissionLeg } from "./mission-store";
@@ -13,7 +19,7 @@ export type PointCoordinates = {
   longitude: number;
   /** UTC time of the position for a moving point; null for a fixed point. */
   asOf: string | null;
-  source: "nasa_iss_oem" | "nasa_iss_oem_snapshot" | "ll2" | "mission_registration" | "manual" | "simulated";
+  source: "wheretheiss" | "wheretheiss_snapshot" | "ll2" | "mission_registration" | "manual" | "simulated";
   label: string;
   sourceUrl: string | null;
 };
@@ -45,7 +51,7 @@ export type MissionContext = {
     altitudeKm: number;
     /** UTC time the position refers to; null for simulated positions. */
     asOf: string | null;
-    source: "nasa_iss_oem" | "nasa_iss_oem_snapshot" | "simulated";
+    source: "wheretheiss" | "wheretheiss_snapshot" | "celestrak_tle" | "simulated";
     label: string;
     sourceUrl: string | null;
   };
@@ -70,8 +76,8 @@ export type MissionContext = {
 };
 
 const POSITION_LABELS = {
-  nasa_iss_oem: "ISS position from NASA trajectory data",
-  nasa_iss_oem_snapshot: "ISS position from a saved NASA trajectory sample",
+  wheretheiss: "Live ISS position from wheretheiss.at",
+  wheretheiss_snapshot: "ISS position from a saved wheretheiss.at sample",
 } as const;
 
 /** Fetches the ISS position once per request, only if something needs it. */
@@ -81,30 +87,48 @@ function issLoader(): () => Promise<IssPosition> {
 }
 
 async function buildLocation(
-  phase: MissionPhase,
+  leg: MissionLeg,
   iss: () => Promise<IssPosition>,
 ): Promise<MissionContext["location"]> {
-  const config = MISSION.phases[phase].position;
-  if (config.kind === "simulated") {
+  const config = MISSION.phases[leg.phase];
+  const position = config.position;
+  if (position.kind === "iss_live") {
+    const pos = await iss();
     return {
-      latitude: config.latitude,
-      longitude: config.longitude,
-      altitudeKm: config.altitudeKm,
-      asOf: null,
-      source: "simulated",
-      label: `Simulated: ${config.description}`,
-      sourceUrl: null,
+      latitude: round(pos.latitude, 3),
+      longitude: round(pos.longitude, 3),
+      altitudeKm: round(pos.altitudeKm, 1),
+      asOf: pos.epoch,
+      source: pos.source,
+      label: POSITION_LABELS[pos.source],
+      sourceUrl: WHERE_THE_ISS_URL,
     };
   }
-  const pos = await iss();
+  const noradId = leg.mission.noradId;
+  if (noradId !== null) {
+    try {
+      const pos = await getSpacecraftPosition(noradId);
+      return {
+        latitude: round(pos.latitude, 3),
+        longitude: round(pos.longitude, 3),
+        altitudeKm: round(pos.altitudeKm, 1),
+        asOf: pos.epoch,
+        source: pos.source,
+        label: `${config.vehicle} position computed from its orbital elements (CelesTrak)`,
+        sourceUrl: celestrakUrl(noradId),
+      };
+    } catch (error) {
+      console.warn(`No CelesTrak position for NORAD ${noradId} - using the simulated point:`, error);
+    }
+  }
   return {
-    latitude: round(pos.latitude, 3),
-    longitude: round(pos.longitude, 3),
-    altitudeKm: round(pos.altitudeKm, 1),
-    asOf: pos.epoch,
-    source: pos.source,
-    label: POSITION_LABELS[pos.source],
-    sourceUrl: ISS_OEM_URL,
+    latitude: position.latitude,
+    longitude: position.longitude,
+    altitudeKm: position.altitudeKm,
+    asOf: null,
+    source: "simulated",
+    label: `Simulated: ${position.description}`,
+    sourceUrl: null,
   };
 }
 
@@ -130,7 +154,7 @@ async function buildPointCoordinates(
     asOf: pos.epoch,
     source: pos.source,
     label: POSITION_LABELS[pos.source],
-    sourceUrl: ISS_OEM_URL,
+    sourceUrl: WHERE_THE_ISS_URL,
   };
 }
 
@@ -166,7 +190,7 @@ export async function buildMissionContext(leg: MissionLeg): Promise<MissionConte
   const config = MISSION.phases[leg.phase];
   const iss = issLoader();
   const [location, departureCoordinates, destinationCoordinates] = await Promise.all([
-    buildLocation(leg.phase, iss),
+    buildLocation(leg, iss),
     buildPointCoordinates(leg.departure.place, iss),
     buildPointCoordinates(leg.destination.place, iss),
   ]);

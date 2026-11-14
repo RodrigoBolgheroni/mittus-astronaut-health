@@ -13,7 +13,7 @@ export type FixedPlaceSource = "ll2" | "mission_registration" | "manual";
 export type DepartureTimeSource = FixedPlaceSource | "simulated";
 
 /**
- * A `tracked` place moves (the API resolves its position live from NASA data);
+ * A `tracked` place moves (the API resolves its position live from wheretheiss.at);
  * a `fixed` place is a coordinate, such as a launch pad or a splashdown zone.
  */
 export type MissionPlace =
@@ -34,6 +34,8 @@ export type MissionLeg = {
     code: string;
     name: string;
     reference: { label: string; url: string } | null;
+    /** NORAD catalog number of the craft, used for its CelesTrak elements; null if unknown. */
+    noradId: number | null;
     /** Where this registration was read from. */
     origin: "database" | "built_in";
   };
@@ -46,6 +48,7 @@ export type MissionLeg = {
 export type MissionLegRow = {
   mission_code: string;
   mission_name: string;
+  norad_id: number | null;
   reference_label: string | null;
   reference_url: string | null;
   phase: string;
@@ -90,6 +93,7 @@ export function legFromRow(row: MissionLegRow): MissionLeg {
         row.reference_label && row.reference_url
           ? { label: row.reference_label, url: row.reference_url }
           : null,
+      noradId: row.norad_id == null ? null : Number(row.norad_id),
       origin: "database",
     },
     phase: row.phase as MissionPhase,
@@ -138,6 +142,7 @@ const BUILT_IN_MISSION: MissionLeg["mission"] = {
     label: "NASA SpaceX Crew-12 mission profile",
     url: "https://www.nasa.gov/mission/nasas-spacex-crew-12/",
   },
+  noradId: null,
   origin: "built_in",
 };
 
