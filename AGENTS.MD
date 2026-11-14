@@ -11,6 +11,11 @@ O Mittus participa do desafio **Create Health Monitoring Software for Astronauts
 | IA e Dados | Giulia e Rodrigo |
 | Design | Gabi |
 
+## Evento local — Campinas, SP
+
+- O Mittus participa **on-line pelo evento local de Campinas**, em **14 e 15 de novembro de 2026**. Cada integrante deve concluir a inscrição no portal do NASA Space Apps. O formulário do site local é uma pré-inscrição. [Página do evento de Campinas](https://www.spaceappschallenge.org/2026/local-events/campinas/) · [FAQ da organização local](https://www.nasaspaceappscampinas.org/)
+- O **Local Lead** é **Marco Antônio Benevides Linhares**. Para confirmar se há pitch on-line ou entrega local adicional, consulte a [programação no portal](https://www.spaceappschallenge.org/2026/local-events/campinas/?tab=schedule) e os comunicados do WhatsApp da organização, acessível pelo [site de Campinas](https://www.nasaspaceappscampinas.org/).
+
 ## Contexto do desafio
 
 - O Human Research Program da NASA identifica cinco perigos dos voos espaciais tripulados: radiação espacial, isolamento e confinamento, distância da Terra, campos gravitacionais e ambiente fechado hostil. Entre os riscos à saúde estão alterações imunológicas, perda óssea, eventos cardiovasculares e problemas de saúde comportamental.

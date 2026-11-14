@@ -2,7 +2,7 @@
 
 ## Prazos e elegibilidade
 
-- A submissão abre no sábado, **14/11/2026 às 9h**, e encerra no domingo, **15/11/2026 às 23h59**, no fuso do **Local Event** da equipe. No **Universal Event**, vale o horário do local de residência do **Team Owner**.
+- Para o Mittus, inscrito no [evento de Campinas](https://www.spaceappschallenge.org/2026/local-events/campinas/), a submissão no portal abre no sábado, **14/11/2026 às 9h**, e encerra no domingo, **15/11/2026 às 23h59**, no horário de Brasília.
 - Para concorrer a prêmios, confirme que os seis integrantes do Mittus estão inscritos no mesmo evento, fora da lista de espera e visíveis na aba **Members** da equipe. Se for um evento local, confirme com o **Local Lead** os horários da avaliação e da premiação, que podem seguir um calendário próprio.
 
 ## O que preparar
