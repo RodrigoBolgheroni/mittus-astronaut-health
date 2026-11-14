@@ -1,4 +1,9 @@
 import { execFileSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
+import { readdir, readFile } from 'node:fs/promises';
+import { createRequire } from 'node:module';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { PrismaClient } from '../../src/generated/prisma/client.js';
 
 export function testDatabaseUrl() {
@@ -21,81 +26,79 @@ export function testDatabaseUrl() {
 
 export default async function prepareDatabase() {
   const databaseUrl = testDatabaseUrl();
-  execFileSync('pnpm', ['exec', 'prisma', 'db', 'push', '--skip-generate'], {
-    env: { ...process.env, DATABASE_URL: databaseUrl },
-    stdio: 'pipe',
-  });
+  const prismaCli = createRequire(import.meta.url).resolve(
+    'prisma/build/index.js',
+  );
+  const directory = fileURLToPath(
+    new URL('../../../supabase/migrations/', import.meta.url),
+  );
   const prisma = new PrismaClient({ datasourceUrl: databaseUrl });
   try {
-    const labels = {
-      stress: ['Very calm', 'Calm', 'Moderate', 'Stressed', 'Very stressed'],
-      mood: [
-        'Very happy / positive',
-        'Positive',
-        'Neutral',
-        'Negative',
-        'Very sad / negative',
-      ],
-      conflict: [
-        'No team conflict',
-        'Low team conflict',
-        'Moderate team conflict',
-        'High team conflict',
-        'Very high team conflict',
-      ],
-      fatigue: [
-        'Fully alert and wide awake',
-        'Very active and responsive, but not at peak alertness',
-        'Feeling well and ready',
-        'A little tired and less energetic',
-        'Moderately tired and fatigued',
-        'Extremely tired, with great difficulty concentrating',
-        'Completely exhausted and unable to function effectively',
-      ],
-    };
-    const data = (values: string[]) =>
-      values.map((label, index) => ({ value: index + 1, label }));
-    await prisma.stressLevelOption.createMany({
-      data: data(labels.stress),
-      skipDuplicates: true,
-    });
-    await prisma.moodLevelOption.createMany({
-      data: data(labels.mood),
-      skipDuplicates: true,
-    });
-    await prisma.teamConflictLevelOption.createMany({
-      data: data(labels.conflict),
-      skipDuplicates: true,
-    });
-    await prisma.fatigueOption.createMany({
-      data: data(labels.fatigue),
-      skipDuplicates: true,
-    });
-    // db push does not represent CHECK constraints or RLS; reproduce the existing DB rules.
-    const constraints = [
-      ['sleep_hours', 0, 24],
-      ['stress_level', 1, 5],
-      ['mood_level', 1, 5],
-      ['team_conflict_level', 1, 5],
-      ['fatigue', 1, 7],
-    ] as const;
-    for (const [field, min, max] of constraints) {
-      await prisma.$executeRawUnsafe(`DO $$ BEGIN
-        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid='public.check_ins'::regclass AND conname='check_ins_${field}_check') THEN
-          ALTER TABLE public.check_ins ADD CONSTRAINT check_ins_${field}_check CHECK (${field} BETWEEN ${min} AND ${max});
-        END IF;
-      END $$`);
+    const [state] = await prisma.$queryRaw<
+      { tracked: boolean; tables: number }[]
+    >`
+      SELECT
+        to_regclass('mittus_test_meta.migrations') IS NOT NULL AS tracked,
+        (SELECT count(*)::int FROM pg_tables WHERE schemaname = 'public') AS tables
+    `;
+    if (!state.tracked && state.tables !== 0) {
+      throw new Error(
+        'Migration replay requires an empty local mittus_test database. Existing tables are never dropped.',
+      );
     }
-    for (const table of [
-      'check_ins',
-      'check_in_actions',
-      'stress_level_options',
-      'mood_level_options',
-      'team_conflict_level_options',
-      'fatigue_options',
-    ]) {
-      await prisma.$executeRawUnsafe(
-        `ALTER TABLE public.${table} ENABLE ROW LEVEL SECURITY`,
+    // Emulate Supabase roles locally; production roles and history are never touched.
+    await prisma.$executeRawUnsafe(`DO $$ BEGIN
+      IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'anon') THEN
+        CREATE ROLE anon NOLOGIN;
+      END IF;
+      IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'authenticated') THEN
+        CREATE ROLE authenticated NOLOGIN;
+      END IF;
+      IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'service_role') THEN
+        CREATE ROLE service_role NOLOGIN BYPASSRLS;
+      END IF;
+    END $$`);
+    await prisma.$executeRawUnsafe(
+      'GRANT USAGE ON SCHEMA public TO anon, authenticated, service_role',
+    );
+    await prisma.$executeRawUnsafe(
+      'ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO service_role',
+    );
+    await prisma.$executeRawUnsafe(
+      'CREATE SCHEMA IF NOT EXISTS mittus_test_meta',
+    );
+    await prisma.$executeRawUnsafe(`CREATE TABLE IF NOT EXISTS mittus_test_meta.migrations (
+      name text PRIMARY KEY,
+      checksum text NOT NULL
+    )`);
+    const files = (await readdir(directory))
+      .filter((file) => file.endsWith('.sql'))
+      .sort();
+    for (const file of files) {
+      if (!/^\d{14}_[a-z0-9_]+\.sql$/.test(file)) {
+        throw new Error(`Invalid migration filename: ${file}`);
+      }
+      const sql = await readFile(join(directory, file), 'utf8');
+      const checksum = createHash('sha256').update(sql).digest('hex');
+      const [applied] = await prisma.$queryRaw<{ checksum: string }[]>`
+        SELECT checksum FROM mittus_test_meta.migrations WHERE name = ${file}
+      `;
+      if (applied) {
+        if (applied.checksum !== checksum) {
+          throw new Error(
+            `Applied test migration changed: ${file}. Use a fresh isolated database.`,
+          );
+        }
+        continue;
+      }
+      // The file and its checksum are committed together, with no db push or schema reset.
+      execFileSync(
+        process.execPath,
+        [prismaCli, 'db', 'execute', '--stdin', '--url', databaseUrl],
+        {
+          input: `BEGIN;\n${sql}\nINSERT INTO mittus_test_meta.migrations (name, checksum) VALUES ('${file}', '${checksum}');\nCOMMIT;`,
+          stdio: 'pipe',
+        },
       );
     }
   } finally {
