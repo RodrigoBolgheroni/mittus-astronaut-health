@@ -9,7 +9,7 @@ O Mittus participa do desafio **Create Health Monitoring Software for Astronauts
 | Backend | Luis e Neves |
 | Frontend | Luigi |
 | Machine Learning | Rodrigo |
-| Resumo inteligente do check-in | Giulia |
+| Resumo inteligente e explicação do plano de mudança | Giulia |
 | Design | Gabi |
 
 ## Evento local — Campinas, SP

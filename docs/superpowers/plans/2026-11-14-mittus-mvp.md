@@ -11,6 +11,9 @@ O Mittus é um **app web de acompanhamento de saúde para astronautas**. A propo
 | **Previsão com ML** | Demonstrar uma única previsão, a chance de o astronauta **relatar fadiga elevada no próximo check-in**, usando o histórico disponível até hoje. Mostrar a saída ao lado dos registros recentes. Identificar a previsão como experimental e os dados como simulados. |
 | **Resumo inteligente do check-in** | Gerar em inglês um cartão com o que mudou em relação aos registros anteriores. O backend calcula os fatos e o modelo de linguagem redige o texto. |
 | **Contexto da missão** | Alternar entre dois cenários, **em órbita** e **retorno à Terra**. Mostrar fase, localização, destino e temperatura interna simulada da cabine. |
+| **Plano de mudança** | A partir da previsão experimental, uma regra versionada sugere acompanhar os registros ou fazer um novo check-in. O modelo de linguagem explica a ação. O astronauta pode reconhecê-la, concluí-la ou dispensá-la. |
+
+As rotas, tabelas e responsabilidades por funcionalidade estão no [FEATURES.md](../../../FEATURES.md).
 
 O Human Research Program da NASA associa sono insuficiente e horários irregulares a riscos para o desempenho e a saúde. Use essa fonte para justificar por que o app acompanha sono e fadiga. Registre a origem dos dados, a forma de avaliação do modelo e a diferença entre a pesquisa da NASA e os dados simulados pela equipe. [NASA — Risk from Inadequate Sleep and Irregular Schedules](https://www.nasa.gov/reference/risk-from-inadequate-sleep-and-irregular-schedules/)
 
@@ -21,6 +24,7 @@ O Human Research Program da NASA associa sono insuficiente e horários irregular
 3. Usar o corpo 3D para abrir o painel de sono e fadiga e ver a previsão para o próximo check-in.
 4. Selecionar **Retorno à Terra** e conferir a atualização do contexto da missão.
 5. Clicar em **Generate insight** e conferir se o resumo compara o último check-in com os registros anteriores.
+6. Abrir o plano de mudança, conferir a ação sugerida e marcá-la como concluída. Recarregar e comprovar que o status foi preservado.
 
 ## Como validar a entrega
 
@@ -29,6 +33,7 @@ O Human Research Program da NASA associa sono insuficiente e horários irregular
 - [ ] A previsão usa somente dados disponíveis até o check-in atual. Avaliar o modelo em cenários reservados para teste e compará-lo com uma regra simples, como repetir o nível de fadiga do último registro. Se o ML ainda estiver pendente no momento da entrega, demonstrar o fluxo com a regra e descrevê-la como tal.
 - [ ] A mudança de fase atualiza localização, destino e temperatura simulada da cabine no painel.
 - [ ] O resumo usa o último check-in e até sete anteriores. A comparação exclui o registro atual da média. Se faltarem registros anteriores, o cartão informa que ainda não há histórico para comparar. Em caso de falha do modelo de linguagem, o app exibe um texto com os fatos calculados.
+- [ ] Repetir a avaliação e conferir que ela reaproveita a ação. Corrigir o check-in e verificar a substituição de ações pendentes quando a avaliação mudar. Conferir acesso por sessão e o texto padrão quando o provedor falhar.
 - [ ] Demo e aba **Project** mostram o fluxo publicado e descrevem o uso da fonte da NASA e do ML conforme implementados. [Requisitos de entrega](../../../REQUISITOS-DE-ENTREGA.md)
 
 ## Depois do MVP
@@ -41,8 +46,8 @@ Agenda proposta em **horário de Brasília**, começando no **sábado, 14/11, à
 
 ### Banco de dados — primeira entrega técnica
 
-- **14h–14h25.** Luis e Neves escolhem um banco compatível com a stack e registram o esquema junto com o contrato da API. A proposta inicial é uma tabela `check_ins` com `id`, `session_id`, `check_in_date`, `sleep_hours`, `mood` e `fatigue`. Definam as escalas de humor e fadiga com Rodrigo e Gabi no mesmo alinhamento.
-- **14h25–15h15.** Neves provisiona o banco de desenvolvimento e configura a conexão no servidor. Luis versiona e aplica a primeira migração e prepara com Rodrigo um histórico fictício reproduzível a partir dos exemplos definidos às 14h25. A previsão é calculada a partir dos check-ins. Os cenários da missão ficam na aplicação.
+- **14h–14h25.** Luis e Neves alinham o contrato da API com o [esquema do Supabase](../../../FEATURES.md#banco-de-dados). Confirmem com Rodrigo e Gabi os campos exibidos no formulário e as escalas de humor e fadiga.
+- **14h25–15h15.** Neves configura a conexão no servidor. Luis prepara com Rodrigo um histórico fictício reproduzível. O backend calcula a previsão a partir de `check_ins` e registra o plano em `check_in_actions`. Os cenários da missão ficam na aplicação.
 - **Aceite às 15h15.** A migração roda em um banco vazio. O backend conecta, grava e lê um check-in fictício. A leitura pela sessão A encontra o registro e a leitura pela sessão B mantém o histórico isolado. Luis e Neves conferem que as credenciais ficam na configuração do servidor.
 - **Em paralelo.** Luigi monta o frontend com o JSON combinado às 14h25. Rodrigo trabalha com históricos sintéticos no mesmo formato. O frontend e a previsão passam a usar os dados do backend na integração.
 
@@ -81,7 +86,7 @@ No sábado, reservem **17h30–18h** para pausa. No domingo, reservem **12h30–
 
 | Quando | Tarefa e entrega |
 | --- | --- |
-| **Sáb., 14h25–15h15 · 50 min** | Criar e aplicar a migração de `check_ins`. Preparar o histórico fictício com Rodrigo e verificar gravação e leitura por sessão com Neves. |
+| **Sáb., 14h25–15h15 · 50 min** | Verificar `check_ins` e `check_in_actions`. Preparar o histórico fictício com Rodrigo e testar gravação e leitura por sessão com Neves. |
 | **Sáb., 15h15–16h · 45 min** | Ligar os endpoints de cadastro e histórico ao banco. Publicar exemplos de respostas, incluindo a estrutura de avaliação e o contexto da missão. |
 | **Sáb., 16h–17h30 · 1h30** | Conferir gravação, consulta e entradas inválidas. Preparar o histórico inicial por sessão para que dois jurados possam repetir a demo sem interferir nos registros um do outro. |
 | **Sáb., 18h–20h · 2h** | Conectar a saída da previsão ao painel. Testar com Luigi um novo check-in, do envio ao painel atualizado. |
@@ -109,11 +114,12 @@ No sábado, reservem **17h30–18h** para pausa. No domingo, reservem **12h30–
 | **Dom., 9h30–12h30 · 3h** | Testar o modelo no app, documentar qual abordagem entrou na versão escolhida e revisar o texto do resultado. Confirmar os seis membros e as instruções locais já levantadas no alinhamento de sábado. |
 | **Dom., 13h30–18h · 4h30** | Até 15h30, fechar a aba **Project** e o README em inglês, com fontes, links, dados simulados e declaração de uso de IA. Até 17h, testar o fluxo e os links com o time. Até 18h, clicar em **Submit for Judging** e conferir a confirmação. |
 
-### Giulia — Resumo inteligente do check-in
+### Giulia — Resumo inteligente e plano de mudança
 
 - Preparar casos de teste com histórico suficiente e insuficiente e definir a saída do resumo em inglês com um exemplo para Luigi.
 - Implementar o cálculo dos fatos a partir dos check-ins e a geração do resumo comparativo. Combinar com Luis a rota `POST /api/check-in-insights` e com Neves a configuração do provedor no servidor.
 - Integrar com Luigi o botão **Generate insight** e verificar números, histórico insuficiente e resposta alternativa em caso de falha do modelo. Entregar a Rodrigo a descrição de uso de IA para a submissão.
+- Para o plano, receber do backend a ação, o motivo e a previsão. Preparar a explicação em inglês e o texto padrão de cada ação da demo. Conferir com Luis e Neves a integração e com Luigi a exibição do resultado.
 
 ### Revisão conjunta e envio
 
