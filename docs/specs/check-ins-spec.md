@@ -294,4 +294,4 @@ Implementação e comandos de execução: [README do backend](../../backend/READ
 5. Padronizar erros e executar os testes de aceite.
 6. Integrar o frontend: carregar opções e calendário, enviar `PUT` e refazer a consulta após sucesso.
 
-This specification covers the daily check-in API. Check-in actions are also implemented; see the [backend action contract](../../backend/README.md#check-in-actions) for evaluation, history and status updates. Trained forecast inference and language-model insights remain separate integrations.
+This specification covers the daily check-in API. Check-in actions are also implemented; see the [backend action contract](../../backend/README.md#check-in-actions) for evaluation, history and status updates. Actions now consume the shared trained synthetic fatigue model locally; language-model insights remain a separate integration.

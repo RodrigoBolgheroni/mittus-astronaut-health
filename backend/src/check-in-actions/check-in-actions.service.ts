@@ -54,7 +54,6 @@ export class CheckInActionsService {
     const records = await transaction.checkIn.findMany({
       where: { sessionId: input.sessionId },
       orderBy: { checkInDate: 'desc' },
-      take: 90,
     });
     if (records[0]?.id !== input.checkInId) {
       throw new ApiError(

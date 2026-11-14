@@ -61,14 +61,44 @@ describe('ForecastService', () => {
     expect(request.signal).toBeInstanceOf(AbortSignal);
   });
 
-  it('does not call a model when no endpoint is configured', async () => {
+  it.each([0, 1, 2])(
+    'reports insufficient history for %s local records without network access',
+    async (length) => {
+      const fetch = vi.fn();
+      vi.stubGlobal('fetch', fetch);
+      service();
+      vi.stubEnv('FATIGUE_FORECAST_URL', undefined);
+      const records = Array.from({ length }, (_, index) => ({
+        ...history[0]!,
+        check_in_date: `2026-11-${12 + index}`,
+      }));
+      expect(
+        await new ForecastService(new RuntimeConfig()).predict(records),
+      ).toEqual({ status: 'insufficient_history' });
+      expect(fetch).not.toHaveBeenCalled();
+    },
+  );
+
+  it('adapts the bundled model to the action contract without an HTTP provider', async () => {
     const fetch = vi.fn();
     vi.stubGlobal('fetch', fetch);
     service();
     vi.stubEnv('FATIGUE_FORECAST_URL', undefined);
-    expect(
-      await new ForecastService(new RuntimeConfig()).predict(history),
-    ).toEqual({ status: 'unavailable' });
+    const records = [12, 13, 14].map((day) => ({
+      ...history[0]!,
+      check_in_date: `2026-11-${day}`,
+    }));
+    const result = await new ForecastService(new RuntimeConfig()).predict(
+      records,
+    );
+    expect(result.status).toBe('ready');
+    if (result.status !== 'ready')
+      throw new Error('Expected a ready local prediction.');
+    expect(Number.isFinite(result.probability_high_fatigue)).toBe(true);
+    expect(result.probability_high_fatigue).toBeGreaterThanOrEqual(0);
+    expect(result.probability_high_fatigue).toBeLessThanOrEqual(1);
+    expect(result.model_version.trim()).not.toBe('');
+    expect(Number.isNaN(Date.parse(result.predicted_at))).toBe(false);
     expect(fetch).not.toHaveBeenCalled();
   });
 
@@ -89,15 +119,13 @@ describe('ForecastService', () => {
     async (probability) => {
       vi.stubGlobal(
         'fetch',
-        vi
-          .fn()
-          .mockResolvedValue(
-            Response.json({
-              ...ready,
-              probability_high_fatigue: probability,
-              model_version: ' model-v1 ',
-            }),
-          ),
+        vi.fn().mockResolvedValue(
+          Response.json({
+            ...ready,
+            probability_high_fatigue: probability,
+            model_version: ' model-v1 ',
+          }),
+        ),
       );
       expect(await service().predict(history)).toEqual({
         ...ready,

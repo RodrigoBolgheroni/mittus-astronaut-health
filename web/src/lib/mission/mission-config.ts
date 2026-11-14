@@ -19,10 +19,22 @@ type PhaseConfig = {
   label: string;
   status: string;
   vehicle: string;
-  /** Where the position comes from in this phase. */
+  /**
+   * Where the craft's current position comes from in this phase.
+   *   iss_live:         docked, so it is the ISS position (wheretheiss.at).
+   *   tle_or_simulated: free flight. Uses the craft's CelesTrak orbital
+   *                     elements when the mission has a NORAD id, otherwise
+   *                     (or if CelesTrak fails) the simulated point.
+   */
   position:
-    | { kind: "iss_oem" }
-    | { kind: "simulated"; latitude: number; longitude: number; altitudeKm: number; description: string };
+    | { kind: "iss_live" }
+    | {
+        kind: "tle_or_simulated";
+        latitude: number;
+        longitude: number;
+        altitudeKm: number;
+        description: string;
+      };
   /** Where the cabin temperature comes from in this phase. */
   cabinTemperature:
     | { kind: "iss_historical" }
@@ -35,7 +47,7 @@ export const MISSION = {
       label: "In orbit",
       status: "Docked to the ISS",
       vehicle: "Crew Dragon",
-      position: { kind: "iss_oem" },
+      position: { kind: "iss_live" },
       cabinTemperature: { kind: "iss_historical" },
     },
     return_to_earth: {
@@ -43,7 +55,7 @@ export const MISSION = {
       status: "Undocked, descending to splashdown",
       vehicle: "Crew Dragon",
       position: {
-        kind: "simulated",
+        kind: "tle_or_simulated",
         latitude: 31.2,
         longitude: -121.4,
         altitudeKm: 180,

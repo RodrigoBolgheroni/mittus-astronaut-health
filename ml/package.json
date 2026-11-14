@@ -1,0 +1,14 @@
+{
+  "name": "@mittus/fatigue-model",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "types": "./index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "default": "./index.js"
+    }
+  },
+  "files": ["index.js", "index.d.ts", "fatigue-model.json"]
+}

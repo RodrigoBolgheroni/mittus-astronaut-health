@@ -20,7 +20,7 @@ Configure o `.env` usando [`.env.example`](.env.example) como referência, prese
 | `WEB_ORIGIN`     | Origem exata do frontend, como `http://localhost:3000`, sem barra final.                                                                                               |
 | `PORT`           | Porta da API; padrão `3001`.                                                                                                                                           |
 | `NODE_ENV`       | `production` habilita o atributo `Secure` do cookie; use HTTPS nesse ambiente.                                                                                         |
-| `FATIGUE_FORECAST_URL` | Optional trusted inference endpoint. The server posts model inputs to this URL; without it, action evaluation returns `unavailable`. |
+| `FATIGUE_FORECAST_URL` | Optional trusted HTTP provider override. When unset, actions use the bundled synthetic fatigue model locally. |
 
 Para gerar um segredo local:
 
@@ -85,7 +85,11 @@ The existing NestJS backend, signed session cookie, validation pipe, Prisma mode
 
 ### Forecast integration
 
-Configure `FATIGUE_FORECAST_URL` with a trusted inference endpoint. This repository does not contain a trained predictor; the integration never fabricates probabilities. It posts `{ "check_ins": [...] }` with up to 90 check-ins in chronological order. Each entry contains `id`, `check_in_date`, `sleep_hours`, `stress_level`, `mood_level`, `team_conflict_level` and `fatigue`. Session identifiers, cookies and free-text descriptions are not sent.
+Actions use the shared `@mittus/fatigue-model` package in `ml/` by default. This is the trained synthetic Eres v2 model from main, not a fabricated fallback. It requires at least three check-ins and receives the complete session history in chronological order. Its native `ok` result is adapted to the existing action response status `ready`; insufficient history creates no action.
+
+Both runtime packages depend on `file:../ml`. Include that folder when installing from a monorepo checkout; the installed model package contains JavaScript, type declarations and the weight artifact, so the compiled backend does not import TypeScript from the web source tree. `ml/train.py` exports to `ml/fatigue-model.json`. Inference, weights and training output have a single owner; there is no compatibility copy under `web/src/lib`.
+
+Set `FATIGUE_FORECAST_URL` only to override the bundled model with a trusted HTTP provider. The server posts `{ "check_ins": [...] }` with the complete chronological history. Each entry contains `id`, `check_in_date`, `sleep_hours`, `stress_level`, `mood_level`, `team_conflict_level` and `fatigue`. Session identifiers, cookies and free-text descriptions are not sent. Provider failures do not silently switch model versions by falling back locally.
 
 The provider must return HTTP 200 with one of these JSON responses:
 
@@ -102,13 +106,15 @@ The provider must return HTTP 200 with one of these JSON responses:
 { "status": "insufficient_history" }
 ```
 
-Probability must be finite and between 0 and 1; the model version must be nonempty and at most 128 characters; the prediction time must be a valid UTC ISO instant ending in `Z`. HTTP failures, malformed output, an unconfigured endpoint or a five-second timeout produce `unavailable`. No action is inserted for either unavailable or insufficient-history evaluations, and pending actions for that check-in become `superseded`. Existing snapshots and completed/dismissed history are retained.
+The HTTP probability must be finite and between 0 and 1; its model version must be nonempty and at most 128 characters; its prediction time must be a valid UTC ISO instant ending in `Z`. HTTP failures, malformed output or a five-second timeout produce `unavailable`. No action is inserted for unavailable or insufficient-history evaluations, and pending actions for that check-in become `superseded`. Existing snapshots and completed/dismissed history are retained.
 
 ### Evaluation and state
 
 Call `POST /api/check-ins/{id}/actions/evaluate` with no body or `{}` after saving a check-in. Only the session's latest check-in is evaluable (`409 CHECK_IN_NOT_LATEST` otherwise). A successful evaluation returns `{ "status": "ready", "action": { ... }, "explanation": "..." }`; other outcomes return `status`, `action: null` and an English explanation.
 
 The synthetic-data policy `demo-follow-up-v1` selects `recheck` for probability >= 0.5 and `monitor` below 0.5. This is a demonstration display threshold, not a validated medical threshold. `contact_crew` and `contact_medical` remain reserved; no messages or diagnoses are generated. Explanations currently use versioned English text; language-model generation is not part of these routes.
+
+The training script's evaluation threshold is for its synthetic classification report; it does not change the versioned action display threshold above.
 
 The evaluation key fingerprints model inputs, model/rule versions and probability. Prediction timestamps do not cause duplicate actions. Repeating the current evaluation preserves its ID, snapshot and user progress. After supersession, recovery creates a new historical entry instead of reviving the old action.
 

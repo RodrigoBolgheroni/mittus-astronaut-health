@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { predictFatigue } from '@mittus/fatigue-model';
 import { RuntimeConfig } from '../config.js';
 import type { ForecastCheckIn } from './dto/forecast-check-in.js';
 import type { ForecastResult } from './dto/forecast-result.js';
@@ -50,7 +51,6 @@ export class ForecastService {
   constructor(@Inject(RuntimeConfig) private readonly config: RuntimeConfig) {}
 
   async predict(history: ForecastCheckIn[]): Promise<ForecastResult> {
-    if (!this.config.fatigueForecastUrl) return { status: 'unavailable' };
     // Explicitly project the model inputs; structural typing must not leak private fields.
     const checkIns = history
       .map((checkIn) => ({
@@ -65,6 +65,12 @@ export class ForecastService {
       .sort((left, right) =>
         left.check_in_date.localeCompare(right.check_in_date),
       );
+    if (!this.config.fatigueForecastUrl) {
+      const forecast = predictFatigue(checkIns);
+      return forecast.status === 'ok'
+        ? { ...forecast, status: 'ready' }
+        : forecast;
+    }
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 5000);
     try {

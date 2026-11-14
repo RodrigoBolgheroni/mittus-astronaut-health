@@ -1,6 +1,6 @@
 # Cadastro da missão — banco e API
 
-O cadastro da missão diz **de onde cada trecho parte e para onde vai**. A **posição atual** da nave não fica no banco: a rota consulta na hora (OEM da ISS da NASA enquanto a nave está acoplada; simulada no retorno).
+The mission registry stores each leg's departure and destination, not the craft's current position. Docked position comes from wheretheiss.at. In free flight, a registered `norad_id` selects CelesTrak orbital elements propagated with SGP4; without them, the configured simulated point is labeled explicitly. See the [position source contract](mission-context-backend.md).
 
 Migração: [`supabase/migrations/20261114220000_create_missions.sql`](../supabase/migrations/20261114220000_create_missions.sql)
 
@@ -73,6 +73,5 @@ Senhas com caracteres especiais (`@`, `#`, `/`, `%`) precisam estar codificadas 
 
 ## Fora deste recorte
 
-- **Posição em voo livre.** Usar CelesTrak + SGP4 com `norad_id` quando a nave não estiver acoplada.
 - **Backend Prisma.** The shared schema now maps `Mission`, `MissionPlace`, `MissionLeg` and `SessionMission`, alongside check-ins/actions. The mission-context endpoint remains in Next.js and uses its existing `pg` reader; do not create a duplicate NestJS route. Use the [canonical SQL history and replay guidance](../backend/README.md#database-schema-synchronization), not `prisma db push` or a reset against the shared Supabase project. The partial demo-mission unique index, CHECK constraints and RLS remain SQL-owned.
 - **Criação do vínculo.** Nenhuma rota grava em `session_missions` ainda; o vínculo é feito por SQL.

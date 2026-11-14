@@ -34,7 +34,7 @@ const placeColumns = (alias: string, prefix: string) =>
 
 // The session's own mission if it has one, otherwise the demo mission.
 const LEG_QUERY = `
-  select m.code as mission_code, m.name as mission_name, m.reference_label, m.reference_url,
+  select m.code as mission_code, m.name as mission_name, m.norad_id, m.reference_label, m.reference_url,
          l.phase, l.departure_at, l.departure_at_source, l.destination_description,
          ${placeColumns("dep", "dep_")}, ${placeColumns("dst", "dst_")}
   from public.missions m

@@ -1,0 +1,20 @@
+{
+  "description": "One response saved from api.wheretheiss.at. Used only when the API cannot be reached and no live position was received yet.",
+  "sourceUrl": "https://api.wheretheiss.at/v1/satellites/25544",
+  "savedAt": "2026-11-14T22:06:34Z",
+  "response": {
+    "name": "iss",
+    "id": 25544,
+    "latitude": -23.272992327108,
+    "longitude": 88.299951002974,
+    "altitude": 430.0464001052,
+    "velocity": 27543.005354305,
+    "visibility": "daylight",
+    "footprint": 4558.2259029317,
+    "timestamp": 1794693994,
+    "daynum": 2461359.4212269,
+    "solar_lat": -18.406002140967,
+    "solar_lon": 204.47790194061,
+    "units": "kilometers"
+  }
+}
