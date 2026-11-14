@@ -1,12 +1,12 @@
 # Especificação de dados — Check-ins diários
 
-**Status:** proposta para alinhamento com o data manager
+**Status:** synchronized with the inspected Supabase schema; executable SQL lives in `supabase/migrations`.
 **Banco:** PostgreSQL (Supabase)
 **Objetivo:** armazenar um check-in de saúde por dia e por sessão de demonstração, permitindo consultar os registros em um calendário e alimentar o histórico de indicadores.
 
 Os nomes de tabelas, colunas e valores técnicos estão em inglês. As informações usadas na demonstração são simuladas.
 
-## Modelo proposto
+## Current model
 
 Tabela: `check_ins`
 
@@ -20,10 +20,11 @@ Tabela: `check_ins`
 | `mood_level` | `smallint` | Sim | Estado emocional, de 1 a 5. |
 | `team_conflict_level` | `smallint` | Sim | Nível de conflito na equipe, de 1 a 5. |
 | `fatigue` | `smallint` | Sim | Nível de fadiga, de 1 a 7. |
+| `description` | `text` | No | Optional free-text description, limited to 2,000 characters by the API. |
 | `created_at` | `timestamptz` | Sim | Momento de criação do registro. |
 | `updated_at` | `timestamptz` | Sim | Momento da última alteração; atualizado pelo backend. |
 
-`sleep_hours` registra horas em formato decimal: por exemplo, `7.50` representa 7 horas e 30 minutos. O limite de 0 a 24 e a precisão de duas casas decimais são propostas para validação com a equipe.
+`sleep_hours` uses decimal hours: `7.50` means 7 hours and 30 minutes. The database and API enforce a range of 0–24 and a precision of two decimal places.
 
 ### Escalas de humor
 
@@ -59,37 +60,15 @@ Em todas essas dimensões, valores maiores representam mais estresse, estado emo
 - A permissão para criar ou alterar check-ins de datas passadas ainda está em aberto e deve ser aplicada pelo backend depois da decisão de produto.
 - `created_at` e `updated_at` representam instantes. Nesta proposta, o backend deve atualizar `updated_at` em cada alteração; o banco não o atualiza automaticamente.
 
-## SQL proposto
+## Canonical SQL history
 
-O SQL abaixo é uma proposta de migração para PostgreSQL. A restrição única também cria um índice útil para consultas por sessão e data.
+Use [`supabase/migrations`](../supabase/migrations), rather than copying a second table definition from this document:
 
-```sql
-CREATE TABLE check_ins (
-    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    session_id uuid NOT NULL,
-    check_in_date date NOT NULL,
-    sleep_hours numeric(4, 2) NOT NULL,
-    stress_level smallint NOT NULL,
-    mood_level smallint NOT NULL,
-    team_conflict_level smallint NOT NULL,
-    fatigue smallint NOT NULL,
-    created_at timestamptz NOT NULL DEFAULT now(),
-    updated_at timestamptz NOT NULL DEFAULT now(),
+- [`20261114000000_baseline_check_ins.sql`](../supabase/migrations/20261114000000_baseline_check_ins.sql) reconstructs check-ins and scale options, including descriptions, labels, foreign keys, constraints and access rules.
+- [`20261114192439_create_check_in_actions.sql`](../supabase/migrations/20261114192439_create_check_in_actions.sql) adds the existing action history.
+- [`20261114220000_create_missions.sql`](../supabase/migrations/20261114220000_create_missions.sql) is the recovered original mission registry migration.
 
-    CONSTRAINT check_ins_session_date_unique
-        UNIQUE (session_id, check_in_date),
-    CONSTRAINT check_ins_sleep_hours_range
-        CHECK (sleep_hours >= 0 AND sleep_hours <= 24),
-    CONSTRAINT check_ins_stress_level_range
-        CHECK (stress_level BETWEEN 1 AND 5),
-    CONSTRAINT check_ins_mood_level_range
-        CHECK (mood_level BETWEEN 1 AND 5),
-    CONSTRAINT check_ins_team_conflict_level_range
-        CHECK (team_conflict_level BETWEEN 1 AND 5),
-    CONSTRAINT check_ins_fatigue_range
-        CHECK (fatigue BETWEEN 1 AND 7)
-);
-```
+The recovered baseline is for fresh databases, not a pending change to the existing Supabase project. See the [safe replay and history guidance](../backend/README.md#database-schema-synchronization). Prisma maps the complete public schema but cannot replace the SQL-only CHECK constraints, RLS, grants or partial demo-mission index.
 
 ## Exemplos de operações
 
@@ -143,10 +122,11 @@ Dias sem registro não aparecem no resultado; a interface pode representá-los c
 | `team_conflict_level` | `1` |
 | `fatigue` | `3` |
 
-## Pontos para alinhamento
+## Confirmed implementation decisions
 
-1. Confirmar o intervalo de `sleep_hours`, a precisão e se todos os indicadores devem ser obrigatórios.
-2. Confirmar o fuso usado para determinar o dia atual e a política para datas passadas e futuras.
-3. Definir como a sessão será criada, quanto tempo durará e se haverá uma tabela própria de sessões.
-4. Alinhar com a equipe de ML os nomes, as escalas e o sentido dos valores antes de gerar o histórico sintético.
-5. Atualizar o contrato em `FEATURES.md` após a aprovação: a proposta anterior contém apenas um campo `mood`, agora substituído pelas três dimensões acima.
+- All numeric indicators are required; only `description` is optional.
+- The server uses UTC and accepts writes only for the current date.
+- Signed anonymous demo cookies last 30 days; every health query filters by the validated session.
+- Mission tables are mapped without adding a mandatory mission relationship to check-ins.
+- The [API specification](specs/check-ins-spec.md) and [backend README](../backend/README.md) describe the implemented contracts and isolated migration replay.
+

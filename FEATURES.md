@@ -6,7 +6,7 @@ O Mittus é um app web em inglês para registrar indicadores de saúde, acompanh
 
 **Supabase PostgreSQL · projeto `mittus`.** Project Ref `ynxlbpmhdfaofcyamejf`. [Dashboard do projeto Mittus](https://supabase.com/dashboard/project/ynxlbpmhdfaofcyamejf)
 
-- **`public.check_ins`** guarda `id`, `session_id`, `check_in_date`, `sleep_hours`, `fatigue`, `mood_level`, `stress_level`, `team_conflict_level`, `description`, `created_at` e `updated_at`. Há um registro por sessão e dia. Humor, estresse, conflito e descrição aceitam `NULL`.
+- **`public.check_ins`** stores `id`, `session_id`, `check_in_date`, `sleep_hours`, `fatigue`, `mood_level`, `stress_level`, `team_conflict_level`, `description`, `created_at` and `updated_at`. The implemented API requires all numeric indicators; `description` is optional. There is one record per session and UTC date.
 - **`public.check_in_actions`** guarda `id`, `check_in_id`, `evaluation_key`, `action_code`, `reason_code`, `ruleset_version`, `forecast_snapshot`, `status`, `created_at`, `acknowledged_at` e `resolved_at`. Cada ação aponta para o check-in que motivou a avaliação. [Migração SQL](supabase/migrations/20261114192439_create_check_in_actions.sql)
 
 O backend identifica a sessão pelo cookie e acessa o Supabase pela `DATABASE_URL`. Em todas as operações de ações, ele verifica `check_ins.session_id` pelo vínculo `check_in_id`. A migração habilita RLS e remove os privilégios de `anon` e `authenticated` na tabela de ações.
@@ -14,6 +14,8 @@ O backend identifica a sessão pelo cookie e acessa o Supabase pela `DATABASE_UR
 ## Funcionalidades e dependências
 
 As rotas abaixo são o contrato proposto para a API do Mittus.
+
+**Implementation status:** daily check-ins and all three check-in action routes are implemented in the NestJS/Prisma backend. The trained predictor is an external dependency configured through `FATIGUE_FORECAST_URL`; no probability is fabricated if it is unavailable. Action explanations currently use English rule text, not language-model output. See the [backend integration contract](backend/README.md#check-in-actions).
 
 | Feature | O que o astronauta faz | API e dependências | Tabela |
 | --- | --- | --- | --- |
