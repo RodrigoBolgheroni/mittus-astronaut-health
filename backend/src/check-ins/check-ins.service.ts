@@ -10,6 +10,7 @@ import type { ListCheckInsOutput } from './dto/list-check-ins.output.js';
 import type { CheckInOptionsOutput } from './dto/check-in-options.output.js';
 import { presentCheckIn } from './check-in.presenter.js';
 import type { Prisma } from '../generated/prisma/client.js';
+import { lockSession } from '../common/session-lock.js';
 
 @Injectable()
 export class CheckInsService {
@@ -29,10 +30,47 @@ export class CheckInsService {
     }
     const checkInDate = new Date(`${date}T00:00:00.000Z`);
     const data = { ...fields, description: fields.description ?? null };
-    const record = await this.prisma.checkIn.upsert({
-      where: { sessionId_checkInDate: { sessionId, checkInDate } },
-      create: { sessionId, checkInDate, ...data },
-      update: data,
+    const record = await this.prisma.$transaction(async (transaction) => {
+      await lockSession(transaction, sessionId);
+      const previous = await transaction.checkIn.findUnique({
+        where: { sessionId_checkInDate: { sessionId, checkInDate } },
+      });
+      const changed =
+        !previous ||
+        !previous.sleepHours.equals(data.sleepHours) ||
+        previous.stressLevel !== data.stressLevel ||
+        previous.moodLevel !== data.moodLevel ||
+        previous.teamConflictLevel !== data.teamConflictLevel ||
+        previous.fatigue !== data.fatigue;
+      const saved = await transaction.checkIn.upsert({
+        where: { sessionId_checkInDate: { sessionId, checkInDate } },
+        create: { sessionId, checkInDate, ...data },
+        update: data,
+      });
+      if (changed) {
+        const timestamps = await transaction.checkInAction.aggregate({
+          where: {
+            checkIn: { sessionId },
+            status: { in: ['suggested', 'acknowledged'] },
+          },
+          _max: { createdAt: true, acknowledgedAt: true },
+        });
+        const resolvedAt = new Date(
+          Math.max(
+            this.clock.now().getTime(),
+            timestamps._max.createdAt?.getTime() ?? 0,
+            timestamps._max.acknowledgedAt?.getTime() ?? 0,
+          ),
+        );
+        await transaction.checkInAction.updateMany({
+          where: {
+            checkIn: { sessionId },
+            status: { in: ['suggested', 'acknowledged'] },
+          },
+          data: { status: 'superseded', resolvedAt },
+        });
+      }
+      return saved;
     });
     return presentCheckIn(record);
   }

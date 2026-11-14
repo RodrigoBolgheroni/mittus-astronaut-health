@@ -7,10 +7,28 @@ import {
   CheckInOptionsController,
   CheckInsController,
 } from './check-ins/check-ins.controller.js';
+import {
+  CheckInActionsController,
+  CheckInActionStatusController,
+} from './check-in-actions/check-in-actions.controller.js';
+import { CheckInActionsService } from './check-in-actions/check-in-actions.service.js';
+import { ForecastService } from './forecast/forecast.service.js';
 
 @Module({
   imports: [],
-  controllers: [CheckInsController, CheckInOptionsController],
-  providers: [RuntimeConfig, Clock, PrismaService, CheckInsService],
+  controllers: [
+    CheckInsController,
+    CheckInOptionsController,
+    CheckInActionsController,
+    CheckInActionStatusController,
+  ],
+  providers: [
+    RuntimeConfig,
+    Clock,
+    PrismaService,
+    CheckInsService,
+    CheckInActionsService,
+    ForecastService,
+  ],
 })
 export class AppModule {}
