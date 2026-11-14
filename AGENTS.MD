@@ -8,7 +8,8 @@ O Mittus participa do desafio **Create Health Monitoring Software for Astronauts
 | --- | --- |
 | Backend | Luis e Neves |
 | Frontend | Luigi |
-| IA e Dados | Giulia e Rodrigo |
+| Machine Learning | Rodrigo |
+| Resumo inteligente do check-in | Giulia |
 | Design | Gabi |
 
 ## Evento local — Campinas, SP
@@ -27,5 +28,7 @@ O Mittus participa do desafio **Create Health Monitoring Software for Astronauts
 
 - Para consultar os guias da edição e as perguntas frequentes, abra o [índice oficial de recursos do NASA Space Apps](https://www.spaceappschallenge.org/resources/).
 - Para preparar a demonstração, preencher a página **Project** ou submeter o projeto, consulte os [requisitos de entrega](REQUISITOS-DE-ENTREGA.md).
+- Para consultar as funcionalidades, as rotas propostas e o banco do MVP, abra [FEATURES.md](FEATURES.md).
+- Para definir o escopo, a stack e a divisão do trabalho, consulte o [alinhamento do MVP](docs/superpowers/plans/2026-11-14-mittus-mvp.md).
 - Para requisitos e materiais do evento, consulte o [enunciado do desafio](https://www.spaceappschallenge.org/2026/challenges/health-monitoring-software/?tab=details), a [aba Resources](https://www.spaceappschallenge.org/2026/challenges/health-monitoring-software/?tab=resources) e o [vídeo oficial](https://youtu.be/RERG3gEmdC8).
 - Para embasar indicadores e riscos, consulte os [cinco perigos dos voos espaciais](https://www.nasa.gov/hrp/hazards/), os [riscos à saúde](https://www.nasa.gov/hrp/risks/) e as [pesquisas em andamento](https://www.nasa.gov/hrp/ongoing-hrp-research/) do Human Research Program.
