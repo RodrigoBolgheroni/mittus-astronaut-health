@@ -1,3 +1,4 @@
+node_modules/
 # Superpowers (planos e artefatos gerados pelo plugin)
 docs/superpowers/
 .superpowers/
