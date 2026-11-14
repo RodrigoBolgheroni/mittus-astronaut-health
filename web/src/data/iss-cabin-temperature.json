@@ -1,0 +1,7 @@
+{
+  "description": "Historical ISS cabin air temperature sample. Fill in from NASA OSDR Environmental Data App -> Data Tables: pick a mission, export the telemetry table and copy one ISS temperature row with its timestamp. While celsius is null, the API reports the value as pending.",
+  "sourceUrl": "https://visualization.osdr.nasa.gov/eda",
+  "mission": null,
+  "celsius": null,
+  "measuredAt": null
+}
