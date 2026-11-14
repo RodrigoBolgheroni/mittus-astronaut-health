@@ -9,7 +9,13 @@ O Mittus é um app web em inglês para registrar indicadores de saúde, acompanh
 - **`public.check_ins`** stores `id`, `session_id`, `check_in_date`, `sleep_hours`, `fatigue`, `mood_level`, `stress_level`, `team_conflict_level`, `description`, `created_at` and `updated_at`. The implemented API requires all numeric indicators; `description` is optional. There is one record per session and UTC date.
 - **`public.check_in_actions`** guarda `id`, `check_in_id`, `evaluation_key`, `action_code`, `reason_code`, `ruleset_version`, `forecast_snapshot`, `status`, `created_at`, `acknowledged_at` e `resolved_at`. Cada ação aponta para o check-in que motivou a avaliação. [Migração SQL](supabase/migrations/20261114192439_create_check_in_actions.sql)
 
-O backend identifica a sessão pelo cookie e acessa o Supabase pela `DATABASE_URL`. Em todas as operações de ações, ele verifica `check_ins.session_id` pelo vínculo `check_in_id`. A migração habilita RLS e remove os privilégios de `anon` e `authenticated` na tabela de ações.
+- **Mission registry** stores the departure and destination of each leg, not the craft's live position. [Model and decisions](docs/missions-database.md) · [SQL migration](supabase/migrations/20261114220000_create_missions.sql)
+  - **`public.missions`** — mission identity, demo selection, launch identifiers and references.
+  - **`public.mission_legs`** — one leg per phase, with departure place/time/source and destination place/description.
+  - **`public.mission_places`** — reusable tracked objects or fixed coordinates with provenance and simulation flags.
+  - **`public.session_missions`** — an optional mission link per signed demo session; unlinked sessions use the demo mission.
+
+The server validates the session cookie and reads the database using `DATABASE_URL`. Action operations check `check_ins.session_id` through `check_in_id`; the mission-context route resolves `session_missions` using the same signed session. RLS is enabled and public API role grants are revoked on action and mission tables.
 
 ## Funcionalidades e dependências
 
@@ -19,11 +25,11 @@ As rotas abaixo são o contrato proposto para a API do Mittus.
 
 | Feature | O que o astronauta faz | API e dependências | Tabela |
 | --- | --- | --- | --- |
-| **Check-in diário** | Registra horas de sono, humor e fadiga percebida, com uma descrição opcional. Pode corrigir o registro do dia. | `PUT /api/check-ins/{date}` recebe `sleep_hours`, `fatigue` e os opcionais `mood_level`, `description`, `stress_level` e `team_conflict_level`. O backend devolve o `id` e os dados salvos. | Grava em `check_ins`. |
+| **Daily check-in** | Records sleep and all four numeric indicators, with an optional description. Can replace today's record. | `PUT /api/check-ins/{date}` requires `sleep_hours`, `fatigue`, `mood_level`, `stress_level` and `team_conflict_level`; `description` is optional. The backend returns the saved ID and fields. | Writes `check_ins`. |
 | **Corpo 3D e histórico** | Abre o painel de sono e fadiga pelo corpo 3D ou por um botão acessível pelo teclado. Vê os registros recentes em um gráfico. | `GET /api/check-ins?limit=7` carrega o histórico. Depende de um arquivo `.glb` com licença de uso e de uma visualização textual dos indicadores. | Lê `check_ins`. |
 | **Previsão experimental de fadiga** | Vê a estimativa de relatar fadiga elevada no próximo check-in e quando o histórico ainda é insuficiente. | `GET /api/fatigue-forecast` chama o modelo do Rodrigo no backend e pode retornar `insufficient_history`. Depende do histórico e de dados sintéticos para treinar e testar o modelo. | Lê `check_ins`. |
 | **Resumo inteligente do check-in** | Clica em **Generate insight** e vê, em inglês, o que mudou no último registro em relação ao histórico. | `POST /api/check-in-insights` usa os check-ins da sessão. O backend compara o último registro a até sete anteriores e fornece ao modelo os valores calculados. Se a IA falhar, o app exibe um texto básico com esses valores. | Lê `check_ins`. |
-| **Contexto da missão** | Alterna entre **Em órbita** e **Retorno à Terra**. Vê posição, destino e temperatura da cabine. | `GET /api/mission-context?phase=in_orbit` serve a posição datada da ISS e uma amostra histórica de temperatura, se disponíveis. `GET /api/mission-context?phase=return_to_earth` serve o cenário de retorno simulado. | Arquivos de configuração. |
+| **Mission context** | Switches between in-orbit and return scenarios; sees departure, current position, destination and cabin temperature. | `GET /api/mission-context?phase=...` runs in Next.js, validates the shared session cookie and returns `mission`, `departure`, `location`, `destination` and cabin data. Departure/destination come from the registered mission; database unavailability uses the labeled built-in demo. A missing phase returns `404`. | Reads `missions`, `mission_legs`, `mission_places` and `session_missions`; position and temperature retain their existing sources. |
 | **Plano de mudança** | Vê a ação sugerida com base na previsão experimental. Pode reconhecer, concluir ou dispensar a ação. | `POST /api/check-ins/{id}/actions/evaluate` calcula e registra o plano. `GET /api/check-ins/{id}/actions` carrega as ações e o histórico. `PATCH /api/check-in-actions/{id}` recebe `status` e devolve a ação atualizada. | Lê `check_ins` e grava em `check_in_actions`. |
 
 ## Fluxo do plano de mudança
