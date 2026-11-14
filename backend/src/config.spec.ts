@@ -9,6 +9,7 @@ describe('Runtime configuration', () => {
     vi.stubEnv('SESSION_SECRET', 'a-secret-with-at-least-32-characters');
     vi.stubEnv('WEB_ORIGIN', 'http://localhost:3000');
     vi.stubEnv('PORT', '3001');
+    vi.stubEnv('FATIGUE_FORECAST_URL', undefined);
   });
   afterEach(() => vi.unstubAllEnvs());
 
@@ -33,6 +34,32 @@ describe('Runtime configuration', () => {
     vi.stubEnv('DATABASE_URL', 'postgresql://private-password');
     expect(() => new RuntimeConfig()).toThrow(
       'DATABASE_URL must be a PostgreSQL connection URL.',
+    );
+  });
+
+  it('leaves the optional forecast endpoint unconfigured by default', () => {
+    expect(new RuntimeConfig().fatigueForecastUrl).toBeUndefined();
+  });
+
+  it.each([
+    'http://localhost:8080/predict',
+    'https://forecast.example/predict?v=1',
+  ])('accepts a forecast endpoint: %s', (url) => {
+    vi.stubEnv('FATIGUE_FORECAST_URL', url);
+    expect(new RuntimeConfig().fatigueForecastUrl).toBe(url);
+  });
+
+  it.each([
+    '',
+    'not-a-url',
+    'ftp://forecast.example/predict',
+    'https://user:secret@forecast.example/predict',
+    'https://forecast.example/predict#secret',
+    'https://forecast.example/predict#',
+  ])('rejects an invalid forecast endpoint without exposing it: %s', (url) => {
+    vi.stubEnv('FATIGUE_FORECAST_URL', url);
+    expect(() => new RuntimeConfig()).toThrow(
+      'FATIGUE_FORECAST_URL must be an HTTP URL without credentials or a fragment.',
     );
   });
 
