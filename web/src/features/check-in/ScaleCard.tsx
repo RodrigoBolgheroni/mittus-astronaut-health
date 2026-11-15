@@ -44,7 +44,6 @@ export function ScaleCard({ scale, value, onChange, canvasHeight }: ScaleCardPro
         <h2 id={headingId} className="font-display text-card text-ivory">
           {scale.title}
         </h2>
-        <Icon name={selected.selectedIcon} />
       </div>
 
       <div

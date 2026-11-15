@@ -4,7 +4,6 @@ import { afterEach, describe, it } from "node:test";
 import {
   ApiError,
   evaluateCheckInActions,
-  buildBasicSummary,
   generateRecommendation,
   getMissionContext,
   listCheckIns,
@@ -96,10 +95,5 @@ describe("api client", () => {
   it("rejects with ApiError when Ceres is unavailable", async () => {
     mockFetch(json({ error: "ceres_unavailable" }, 503));
     await assert.rejects(generateRecommendation([{ id: "c1" } as never]), (e: unknown) => e instanceof ApiError && e.status === 503);
-  });
-
-  it("builds a basic summary from the recorded values", () => {
-    const text = buildBasicSummary({ check_in_date: "2026-11-14", sleep_hours: 6.5, stress_level: 2, mood_level: 2, team_conflict_level: 1, fatigue: 5 } as never);
-    assert.match(text, /sleep 6.5 h/);
   });
 });

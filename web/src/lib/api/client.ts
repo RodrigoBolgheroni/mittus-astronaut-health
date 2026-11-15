@@ -26,6 +26,8 @@ import type {
   ListCheckIns,
   MissionContext,
   MissionPhase,
+  MissionPlaceOption,
+  MissionRegistrationInput,
   PutCheckInBody,
 } from "./types.ts";
 
@@ -158,11 +160,16 @@ export function generateRecommendation(
   });
 }
 
-/** Neutral text echoing the latest check-in values only (shown when Ceres is unavailable). */
-export function buildBasicSummary(checkIn: CheckIn): string {
-  return (
-    `Check-in for ${checkIn.check_in_date}: sleep ${checkIn.sleep_hours} h, ` +
-    `stress ${checkIn.stress_level}/5, mood ${checkIn.mood_level}/5, ` +
-    `team conflict ${checkIn.team_conflict_level}/5, fatigue ${checkIn.fatigue}/7.`
-  );
+/** GET /api/mission-places on the Next.js origin: saved places for "Register a mission". */
+export function listMissionPlaces(): Promise<{ places: MissionPlaceOption[] }> {
+  return request<{ places: MissionPlaceOption[] }>("/api/mission-places", { sameOrigin: true });
+}
+
+/**
+ * POST /api/missions on the Next.js origin. Rejects with ApiError: 400 with
+ * `fields` for invalid input, 409 `code_taken` / `session_required`, 503 when
+ * the mission registry is unavailable.
+ */
+export function registerMission(body: MissionRegistrationInput): Promise<{ code: string }> {
+  return request<{ code: string }>("/api/missions", { method: "POST", sameOrigin: true, body });
 }

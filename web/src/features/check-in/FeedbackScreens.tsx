@@ -83,7 +83,7 @@ export function SaveErrorScreen() {
         text="You won’t need to fill everything in again."
       >
         {errorDetail ? <p className="sr-only">{errorDetail}</p> : null}
-        <div className="flex w-full max-w-[620px] flex-wrap justify-center gap-gap">
+        <div className="flex w-full max-w-[596px] flex-wrap justify-center gap-gap">
           <Button ref={retry} onClick={confirmSave} className="min-w-0 flex-1 basis-[200px]">
             Try again
           </Button>
@@ -113,7 +113,7 @@ export function DiscardScreen() {
         titleClass="text-feedback"
         text="You can return to your answers or discard this entry."
       >
-        <div className="flex w-full max-w-[620px] flex-wrap justify-center gap-gap">
+        <div className="flex w-full max-w-[596px] flex-wrap justify-center gap-gap">
           <Button ref={keep} onClick={keepEditing} className="min-w-0 flex-1 basis-[200px]">
             Keep editing
           </Button>

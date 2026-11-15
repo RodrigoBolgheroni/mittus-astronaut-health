@@ -9,7 +9,7 @@ const ITEMS: { id: NavId; href: string; label: string; icon: IconName }[] = [
   { id: "checkin", href: "/check-in/stress", label: "Check-in", icon: "clipboard-check" },
   { id: "history", href: "/history", label: "History", icon: "history" },
   { id: "insights", href: "/insights", label: "Insights", icon: "sparkles" },
-  { id: "mission", href: "/mission", label: "Mission", icon: "orbit" },
+  { id: "mission", href: "/mission/register", label: "Mission", icon: "orbit" },
   { id: "plan", href: "/plan", label: "Plan", icon: "flag" },
 ];
 
@@ -18,7 +18,7 @@ export function Navigation({ active }: { active: NavId }) {
   return (
     <nav
       aria-label="Main"
-      className="flex flex-row flex-wrap items-center justify-center gap-x-[13px] gap-y-2 rounded-nav border border-solid border-line bg-glass px-4 py-3
+      className="flex flex-row flex-wrap items-center justify-center gap-x-[13px] gap-y-2 canvas:gap-y-[13px] glass rounded-nav border border-solid border-line bg-glass px-4 py-3
         canvas:absolute canvas:left-(--nav-x) canvas:top-(--nav-y) canvas:h-(--nav-height) canvas:w-(--nav-width)
         canvas:flex-col canvas:flex-nowrap canvas:justify-start canvas:px-0 canvas:pb-0 canvas:pt-pad"
     >

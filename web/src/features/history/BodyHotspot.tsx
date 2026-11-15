@@ -30,11 +30,17 @@ export function BodyHotspot() {
           type="button"
           aria-haspopup="dialog"
           onClick={show}
-          className="flex w-full flex-col items-start gap-1 rounded-card border border-solid border-line bg-glass pb-pad pl-4 pr-3.5 pt-3.5 text-left
+          className="glass flex w-full flex-col items-start gap-1 rounded-card border border-solid border-line bg-glass pb-pad pl-4 pr-3.5 pt-3.5 text-left
             transition-colors hover:bg-cyan-13 active:bg-cyan-17 canvas:h-[86px]"
         >
           <span className="text-eyebrow whitespace-nowrap text-cyan">BODY DISCOMFORT</span>
-          <span className="text-caption text-ivory canvas:w-[144px]">View recommendation ↗</span>
+          {/* Figma 30:54 wraps at 144px, leaving the arrow on its own line; the break
+              is explicit so it does not depend on SF Pro metrics. */}
+          <span className="text-caption text-ivory">
+            <span className="whitespace-nowrap">View recommendation</span>
+            <br />
+            <span aria-hidden="true">↗</span>
+          </span>
         </button>
       </Slot>
 

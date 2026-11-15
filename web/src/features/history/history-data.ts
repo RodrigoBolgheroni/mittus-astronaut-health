@@ -176,7 +176,8 @@ export function recentRows(
 
 /** Copy. Literal Figma text unless marked PENDING (no Figma frame for the state). */
 export const HISTORY_COPY = {
-  title: "A clearer view of your days.",
+  sleepTitle: "Sleep history",
+  fatigueTitle: "Fatigue history",
   // PENDING (copy): no Figma subtitle for loading / error / empty.
   subtitleFallback: "Daily check-ins · simulated data",
   sleepHeading: "Sleep duration",

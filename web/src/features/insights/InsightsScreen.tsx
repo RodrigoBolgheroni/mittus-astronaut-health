@@ -6,7 +6,8 @@ import { AppShell, Slot } from "@/components/shell/AppShell";
 import { Button, ButtonLink } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { StatusPill } from "@/components/ui/StatusPill";
-import { buildBasicSummary, generateRecommendation, useCheckIns, type CheckIn } from "@/lib/api";
+import { generateRecommendation, useCheckIns, type CheckIn } from "@/lib/api";
+import { buildBasicSummary, type BasicSummary } from "./basic-summary";
 import { evaluationKey, loadRecommendation, saveRecommendation } from "@/lib/ceres/recommendation-cache";
 import { latestCheckIn, type ForecastState } from "./forecast";
 import { loadForecast } from "./loadForecast";
@@ -15,7 +16,7 @@ type InsightState =
   | { kind: "idle" }
   | { kind: "generating" }
   | { kind: "ready"; title: string; summary: string; nextStep: string }
-  | { kind: "fallback"; text: string };
+  | { kind: "fallback"; summary: BasicSummary };
 
 const PANEL_ID = "insights-panel";
 
@@ -110,7 +111,7 @@ export function InsightsScreen() {
         next = toReady(result.insight);
       } catch {
         // Ceres down or not configured: show the recorded values instead.
-        next = { kind: "fallback", text: buildBasicSummary(latest) };
+        next = { kind: "fallback", summary: buildBasicSummary(latest, checkIns.data?.items ?? []) };
       }
     }
     if (token === generation.current) setInsight(next);
@@ -175,11 +176,11 @@ export function InsightsScreen() {
 
   if (view === "generating") {
     return (
-      <AppShell active="insights" title="Finding the context." subtitle="Comparing your latest check-in with your previous entries.">
+      <AppShell active="insights" title="Comparing your check-ins…" subtitle="Comparing your latest check-in with your previous entries.">
         {live}
         <Slot top={212}>
           <StateCard height={440} pill="GENERATING INSIGHT" title={<span className="text-[50px] leading-[1.3]">Connecting the dots…</span>}>
-            <p className="max-w-[900px] text-value text-muted">
+            <p className="max-w-[954px] text-value text-muted">
               We are preparing a short explanation of your recent changes in sleep and perceived fatigue.
             </p>
             <Button variant="secondary" onClick={cancel} className="canvas:w-[220px]">
@@ -195,7 +196,7 @@ export function InsightsScreen() {
     return (
       <AppShell
         active="insights"
-        title="Your comparison is still here."
+        title="Check-in comparison"
         subtitle="The generated explanation is unavailable. Your entries are safe."
         overlay="bg-82"
       >
@@ -203,10 +204,10 @@ export function InsightsScreen() {
         <Slot top={212}>
           {/* data-insight-source="basic": values echoed by the client because Ceres was unavailable. */}
           <StateCard height={484} pill="BASIC SUMMARY" title={<span className="text-[42px] leading-[1.3]">The numbers tell part of the story.</span>}>
-            <p data-insight-source="basic" className="max-w-[900px] text-value text-ivory">
-              {insight.text}
+            <p data-insight-source="basic" className="max-w-[954px] text-value whitespace-pre-line text-ivory">
+              {insight.summary.text}
             </p>
-            <p className="max-w-[900px] text-label text-muted">This summary uses your recorded values.</p>
+            <p className="max-w-[954px] text-label text-muted">{insight.summary.note}</p>
             <Actions>
               <Button onClick={() => void generate()} className="canvas:w-[260px]">
                 Try generating again
@@ -225,7 +226,7 @@ export function InsightsScreen() {
     return (
       <AppShell
         active="insights"
-        title="Your story is still taking shape."
+        title="More check-ins needed"
         subtitle="A first entry is a start. More history brings more context."
       >
         {live}
@@ -242,11 +243,11 @@ export function InsightsScreen() {
             }
           >
             {latest ? (
-              <p className="max-w-[880px] text-value text-ivory">
+              <p className="max-w-[954px] text-value text-ivory">
                 Your check-in is saved. Keep adding daily entries so Mittus can build a comparison over time.
               </p>
             ) : null}
-            <p className="max-w-[880px] text-body text-muted">
+            <p className="max-w-[954px] text-body text-muted">
               The experimental forecast and change plan are unavailable until the model has enough information. No
               suggestion is shown from an older evaluation.
             </p>
@@ -267,7 +268,7 @@ export function InsightsScreen() {
 
   if (view === "unavailable") {
     return (
-      <AppShell active="insights" title="Your record is safe." subtitle="The forecast could not be updated right now.">
+      <AppShell active="insights" title="Forecast temporarily unavailable" subtitle="The forecast could not be updated right now.">
         {live}
         <Slot top={212}>
           <StateCard
@@ -281,7 +282,7 @@ export function InsightsScreen() {
               </span>
             }
           >
-            <p className="max-w-[900px] text-[18px] leading-[1.3] text-muted">
+            <p className="max-w-[954px] text-[18px] leading-[1.3] text-muted">
               Your recent history remains available. A new change plan will appear when the forecast is ready; older
               suggestions are not shown as current.
             </p>
@@ -303,7 +304,7 @@ export function InsightsScreen() {
   return (
     <AppShell
       active="insights"
-      title="Make sense of the changes."
+      title="Check-in recommendations"
       subtitle="See what changed and what you can do next."
       overlay="bg-72"
     >
@@ -323,7 +324,7 @@ export function InsightsScreen() {
           {insight.kind === "ready" ? (
             <div data-insight-source="api" className="flex max-w-[954px] flex-col gap-2">
               <p className="text-body-lg text-ivory">{insight.summary}</p>
-              <p className="text-body text-muted">{insight.nextStep}</p>
+              <p className="text-body text-ivory">{insight.nextStep}</p>
             </div>
           ) : null}
           <Actions>

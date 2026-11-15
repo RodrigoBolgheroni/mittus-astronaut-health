@@ -52,7 +52,7 @@ export function HistoryScreen() {
     <AppShell active="plan" title="Action history." subtitle="Review tasks from previous check-ins.">
       <Slot top={207} width={648}>
         <div className="flex flex-col gap-[18px]">
-          <Card aria-labelledby="log-title" className="flex flex-col gap-3 p-pad canvas:min-h-[330px]">
+          <Card aria-labelledby="log-title" className="flex flex-col gap-3 p-pad canvas:h-[330px]">
             <h2 id="log-title" className="font-display text-card text-ivory">
               Your mission log
             </h2>
@@ -70,15 +70,17 @@ export function HistoryScreen() {
             ) : state.items && state.items.length === 0 ? (
               <p className="text-body text-muted">{COPY.historyEmpty}</p>
             ) : (
-              <ul className="flex flex-col gap-3">
+              // Figma shows three 65px rows in the 330px card; older entries scroll inside it.
+              <ul className="flex flex-col gap-3 canvas:min-h-0 canvas:flex-1 canvas:overflow-y-auto">
                 {state.items?.map((a) => {
                   const s = planStatus(a.status);
                   return (
-                    <li key={a.id} className="flex min-h-[65px] items-center gap-2.5">
+                    <li key={a.id} className="flex min-h-[65px] shrink-0 items-center gap-2.5">
                       <span className="flex h-[38px] w-[34px] shrink-0 items-center justify-center">
                         <Image src={s ? ICON[s] : flag} alt="" width={24} height={24} aria-hidden="true" unoptimized />
                       </span>
-                      <div className="flex min-w-0 flex-1 flex-col gap-1">
+                      {/* Figma "Log entry" is 400px wide, so the status tag sits in a fixed column. */}
+                      <div className="flex min-w-0 flex-1 flex-col gap-1 canvas:w-[400px] canvas:flex-none">
                         <p className="text-body-lg text-ivory">{historyTitle(a.action_code)}</p>
                         <p className="text-pill text-muted">{formatLogDate(eventAt(a))}</p>
                       </div>

@@ -65,12 +65,10 @@ export function SavedScreen() {
         </Card>
       </Slot>
 
-      {/* Not in Figma: shows the saved record id and the replace rule (requested by the API contract). */}
-      <Slot top={704}>
-        <p className="text-center text-caption text-muted">
-          {`Record ID · ${saved.id} · Saving again for ${saved.check_in_date} (UTC) replaces this entry.`}
-        </p>
-      </Slot>
+      {/* Not drawn in Figma: the record id and the replace rule stay available to screen readers only. */}
+      <p className="sr-only">
+        {`Record ID · ${saved.id} · Saving again for ${saved.check_in_date} (UTC) replaces this entry.`}
+      </p>
     </AppShell>
   );
 }

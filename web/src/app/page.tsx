@@ -10,7 +10,7 @@ export default function HomePage() {
   return (
     <AppShell
       active="home"
-      title="Your space. Your wellbeing."
+      title="Your health overview"
       subtitle="A moment to check in, wherever the mission takes you."
       overlay="none"
       pill={false}

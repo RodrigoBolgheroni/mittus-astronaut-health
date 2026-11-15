@@ -66,7 +66,7 @@ function SleepForm({ onClose, onUse }: Pick<SleepDialogProps, "onClose" | "onUse
         aria-labelledby="sleep-dialog-title"
         aria-describedby={invalid ? "sleep-dialog-hint sleep-dialog-error" : "sleep-dialog-hint"}
         aria-invalid={invalid}
-        className={`h-[58px] w-full rounded-card border border-solid bg-glass px-pad text-body-lg text-ivory placeholder:text-muted ${
+        className={`glass h-[58px] w-full rounded-card border border-solid bg-glass px-pad text-body-lg text-ivory placeholder:text-muted ${
           invalid ? "border-purple" : "border-line"
         }`}
       />

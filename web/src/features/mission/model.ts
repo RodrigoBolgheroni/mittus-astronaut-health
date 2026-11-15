@@ -17,10 +17,10 @@ export const PHASE_BY_DIRECTION: Record<Direction, MissionPhase> = {
   return: "return_to_earth",
 };
 
-/** Figma selector literals; the API's `phaseLabel` is identical (MISSION config). */
+/** Figma selector literals (action/Earth → Moon, action/return). */
 export const DIRECTION_LABEL: Record<Direction, string> = {
-  outbound: "In orbit",
-  return: "Return to Earth",
+  outbound: "Earth → Moon",
+  return: "Moon → Earth",
 };
 
 export const DIRECTIONS: readonly Direction[] = ["outbound", "return"];
@@ -45,13 +45,20 @@ export function buildQuery(direction: Direction, focus: Focus | null): string {
 /** Figma heading copy per direction (30:319 and 32:237). */
 export const HEADING: Record<Direction, { title: string; subtitle: string }> = {
   outbound: {
-    title: "Between Earth and the Moon.",
+    title: "Earth to Moon",
     subtitle: "Explore your journey. Select Earth, the spacecraft or the Moon to zoom in.",
   },
   return: {
-    title: "The journey home.",
+    title: "Return to Earth",
     subtitle: "Follow your return from lunar orbit to Earth. Select a point to explore.",
   },
+};
+
+/** Page title of the detail frames (26 Earth, 27 Spacecraft, 28 Moon); they keep the outbound subtitle. */
+export const FOCUS_TITLE: Record<Focus, string> = {
+  earth: "Earth",
+  spacecraft: "Spacecraft details",
+  moon: "The Moon",
 };
 
 // ---- Map geometry (px in the 1002 x 496 "Mission world" of the overview frames) ----

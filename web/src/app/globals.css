@@ -48,7 +48,8 @@
 
   /* typography */
   --font-display: var(--font-cormorant), "Cormorant Garamond", Garamond, Georgia, "Times New Roman", serif;
-  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro", system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  /* SF Pro (Figma) on Apple devices; Inter elsewhere: its metrics are the closest web-licensable match. */
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro", var(--font-inter), system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 
   --text-title: 48px;
   --text-title--line-height: 1.3;
@@ -117,10 +118,15 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* Visible keyboard focus (not designed in Figma; derived from --color-cyan). */
-:focus-visible {
-  outline: 2px solid var(--color-cyan);
-  outline-offset: 3px;
+/*
+ * Visible keyboard focus (not designed in Figma; derived from --color-cyan). In
+ * the base layer so `outline-none` on programmatically focused panels wins.
+ */
+@layer base {
+  :focus-visible {
+    outline: 2px solid var(--color-cyan);
+    outline-offset: 3px;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -137,6 +143,17 @@ body {
   to {
     transform: rotate(360deg);
   }
+}
+
+/*
+ * Figma GLASS effect (frost radius 26-27 on nav, cards and inputs). CSS cannot
+ * reproduce refraction/dispersion, so this keeps the frost (Figma radius / 2)
+ * and the -45deg light as a faint top-left rim.
+ */
+@utility glass {
+  -webkit-backdrop-filter: blur(13px);
+  backdrop-filter: blur(13px);
+  box-shadow: inset 1px 1px 0 rgba(255, 252, 232, 0.08);
 }
 
 dialog::backdrop {

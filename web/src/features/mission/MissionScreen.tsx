@@ -26,6 +26,7 @@ import {
   DIRECTION_LABEL,
   DIRECTIONS,
   EARTH,
+  FOCUS_TITLE,
   type Direction,
   type Focus,
   HEADING,
@@ -35,7 +36,6 @@ import {
   parseDirection,
   parseFocus,
   PHASE_BY_DIRECTION,
-  positionSourceTag,
   SPACECRAFT,
   WORLD,
   ZOOM_TARGET_CENTER,
@@ -77,10 +77,15 @@ export function MissionScreen() {
     previousFocus.current = focus;
   }, [focus]);
 
-  const heading = HEADING[direction];
+  const heading = focus ? { title: FOCUS_TITLE[focus], subtitle: HEADING.outbound.subtitle } : HEADING[direction];
 
   return (
-    <MissionShell title={heading.title} subtitle={heading.subtitle}>
+    <MissionShell
+      title={heading.title}
+      subtitle={heading.subtitle}
+      // Figma 09 (Moon to Earth) has the "Register a mission" action next to the heading.
+      action={direction === "return" && !focus ? { label: "Register a mission", href: "/mission/register" } : undefined}
+    >
       <MissionSlot top={202}>
         <MapViewport
           direction={direction}
@@ -275,7 +280,7 @@ function MapViewport({ direction, focus, ctx, status, loading, errorMessage, onF
             type="button"
             tabIndex={-1}
             onClick={() => onFocus("spacecraft")}
-            className="absolute flex cursor-pointer items-center justify-center rounded-full border border-solid border-line-65 bg-surface-12"
+            className="glass absolute flex cursor-pointer items-center justify-center rounded-full border border-solid border-line-65 bg-surface-12"
             style={{ left: ship.hotspot.left, top: ship.hotspot.top, width: HOTSPOT_SIZE, height: HOTSPOT_SIZE }}
           >
             <Image src="/design/icons/rocket.svg" alt="" width={28} height={28} unoptimized className="max-w-none" />
@@ -307,8 +312,6 @@ function MapViewport({ direction, focus, ctx, status, loading, errorMessage, onF
               <>
                 <span className="text-body-lg text-ivory">{ctx.phaseLabel}</span>
                 <span className="text-pill text-muted">Select to see cabin details</span>
-                {/* Visible source of the position (requirement; not in Figma). */}
-                <span className="text-micro text-muted">Position source: {positionSourceTag(ctx.location.source)}</span>
               </>
             ) : (
               <span className="text-pill text-muted">
@@ -407,7 +410,8 @@ function DetailPanel({
       <h2 className="font-display text-[32px] leading-[1.3] text-ivory">{copy.title}</h2>
       <p className="text-label text-muted">{copy.subtitle}</p>
       {ctx ? (
-        <dl className="flex flex-col gap-2.5">
+        // Figma: each row is a sibling of the heading, 15px apart (same gap as the panel).
+        <dl className="flex flex-col gap-[15px]">
           {rows.map((r) => (
             <div key={r.label} className="flex flex-col gap-px">
               <dt className="text-micro text-muted">{r.label}</dt>
