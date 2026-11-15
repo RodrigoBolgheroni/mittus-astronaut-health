@@ -2,8 +2,10 @@ import "server-only";
 
 import { Pool } from "pg";
 
-import type { MissionPhase } from "./mission-config";
+import { MISSION_PHASES, type MissionPhase } from "./mission-config";
 import { BUILT_IN_DEMO_LEGS, legFromRow, type MissionLeg, type MissionLegRow } from "./mission-registry";
+import type { MissionPlaceOption } from "@/lib/api/types";
+import type { MissionRegistration } from "./mission-registration";
 
 // Reuse one small pool per server instance (and across dev hot reloads).
 const globalForPool = globalThis as unknown as { mittusPool?: Pool };
@@ -60,5 +62,82 @@ export async function getMissionLeg(phase: MissionPhase, sessionId: string | nul
   } catch (error) {
     console.warn("Mission registry unavailable - using built-in demo mission:", error);
     return BUILT_IN_DEMO_LEGS[phase];
+  }
+}
+
+
+/** Saved places for the registration form, or null when the database is not configured or unreachable. */
+export async function listMissionPlaces(): Promise<MissionPlaceOption[] | null> {
+  const db = pool();
+  if (!db) return null;
+  try {
+    const { rows } = await db.query<MissionPlaceOption>(
+      "select code, name, label, kind from public.mission_places order by kind desc, name, label",
+    );
+    return rows;
+  } catch (error) {
+    console.warn("Mission places unavailable:", error);
+    return null;
+  }
+}
+
+export type RegisterResult =
+  | { ok: true; code: string }
+  | { ok: false; reason: "unavailable" | "code_taken" | "unknown_place" };
+
+/**
+ * Inserts the mission and both legs in one transaction and links it to the
+ * session (a session has one mission). `isDemo` moves the demo flag to it.
+ */
+export async function registerMission(reg: MissionRegistration, sessionId: string | null): Promise<RegisterResult> {
+  const db = pool();
+  if (!db) return { ok: false, reason: "unavailable" };
+  let client;
+  try {
+    client = await db.connect();
+  } catch (error) {
+    console.warn("Mission registry unavailable:", error);
+    return { ok: false, reason: "unavailable" };
+  }
+  try {
+    await client.query("begin");
+    if (reg.isDemo) await client.query("update public.missions set is_demo = false where is_demo");
+    const { rows } = await client.query<{ id: string }>(
+      `insert into public.missions (code, name, is_demo, ll2_launch_id, norad_id, reference_label, reference_url)
+       values ($1, $2, $3, $4, $5, $6, $7) returning id`,
+      [reg.code, reg.name, reg.isDemo, reg.ll2LaunchId, reg.noradId, reg.referenceLabel, reg.referenceUrl],
+    );
+    const missionId = rows[0]!.id;
+    for (const phase of MISSION_PHASES) {
+      const leg = reg.legs[phase];
+      const inserted = await client.query(
+        `insert into public.mission_legs
+           (mission_id, phase, departure_place_id, departure_at, departure_at_source, destination_place_id, destination_description)
+         select $1, $2, dep.id, $3, $4, dst.id, $5
+         from public.mission_places dep, public.mission_places dst
+         where dep.code = $6 and dst.code = $7`,
+        [missionId, phase, leg.departureAt, leg.departureAtSource, leg.destinationDescription, leg.departurePlace, leg.destinationPlace],
+      );
+      if (inserted.rowCount !== 1) {
+        await client.query("rollback");
+        return { ok: false, reason: "unknown_place" };
+      }
+    }
+    if (sessionId) {
+      await client.query(
+        `insert into public.session_missions (session_id, mission_id) values ($1::uuid, $2)
+         on conflict (session_id) do update set mission_id = excluded.mission_id, created_at = now()`,
+        [sessionId, missionId],
+      );
+    }
+    await client.query("commit");
+    return { ok: true, code: reg.code };
+  } catch (error) {
+    await client.query("rollback").catch(() => {});
+    if ((error as { code?: string }).code === "23505") return { ok: false, reason: "code_taken" };
+    console.warn("Mission registration failed:", error);
+    return { ok: false, reason: "unavailable" };
+  } finally {
+    client.release();
   }
 }

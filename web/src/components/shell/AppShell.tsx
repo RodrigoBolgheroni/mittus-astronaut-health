@@ -56,7 +56,7 @@ export function Slot({ top, left, width, className = "", children }: SlotProps) 
 }
 
 // PENDING (P13): mission footer text is prototype data hard-coded in Figma.
-const FOOTER_LEFT = "ALEX MORGAN     /     MISSION DAY 024";
+const FOOTER_LEFT = "MISSION DAY 024";
 const FOOTER_RIGHT = "14 NOV 2026   ·   14:30 UTC";
 
 /**

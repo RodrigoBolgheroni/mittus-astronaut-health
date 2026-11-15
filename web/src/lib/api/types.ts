@@ -172,3 +172,28 @@ export type CeresRecommendation = {
   };
   tasks: CeresTask[];
 };
+
+/** Saved place of GET /api/mission-places (table mission_places). */
+export type MissionPlaceOption = { code: string; name: string; label: string; kind: "tracked" | "fixed" };
+
+/** Body of POST /api/missions ("Register a mission"); see lib/mission/mission-registration.ts. */
+export type MissionRegistrationInput = {
+  name: string;
+  code: string;
+  noradId: string;
+  ll2LaunchId: string;
+  referenceLabel: string;
+  referenceUrl: string;
+  isDemo: boolean;
+  legs: Record<
+    MissionPhase,
+    {
+      departurePlace: string;
+      destinationPlace: string;
+      /** "YYYY-MM-DD HH:MM" in UTC (an ISO string is accepted too); empty when unknown. */
+      departureAt: string;
+      departureAtSource: string;
+      destinationDescription: string;
+    }
+  >;
+};

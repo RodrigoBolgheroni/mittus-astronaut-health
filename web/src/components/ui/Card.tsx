@@ -15,5 +15,5 @@ const TONE = {
 
 /** Rounded 28px panel with 1px border (Figma card). */
 export function Card({ as: Tag = "div", tone = "scale", className = "", ...rest }: CardProps) {
-  return <Tag className={`rounded-card border border-solid ${TONE[tone]} ${className}`} {...rest} />;
+  return <Tag className={`glass rounded-card border border-solid ${TONE[tone]} ${className}`} {...rest} />;
 }

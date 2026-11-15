@@ -20,6 +20,7 @@ const ICONS = {
   "moon-22-review": ["moon-22-review", 22, 22],
   "moon-24": ["moon-24", 24, 24],
   "clipboard-list": ["clipboard-list", 24, 24],
+  "clipboard-list-32": ["clipboard-list-32", 32, 32],
   laugh: ["laugh", 30, 30],
   "smile-plus": ["smile-plus", 30, 30],
   smile: ["smile", 30, 30],
@@ -40,6 +41,9 @@ const ICONS = {
   "circle-x-64": ["circle-x-64", 64, 64],
   "loader-circle": ["loader-circle", 64, 64],
   hotspot: ["hotspot-ellipse", 22, 22],
+  "square-18": ["square-18", 18, 18],
+  // Checked state of the Figma 18px square (not drawn in Figma; Lucide square-check at 18px).
+  "square-check-18": ["square-check-18", 18, 18],
 } as const;
 
 export type IconName = keyof typeof ICONS;

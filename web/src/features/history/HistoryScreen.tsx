@@ -34,11 +34,13 @@ const TOGGLE_CLASS =
 
 const METRIC = {
   sleep: {
+    title: COPY.sleepTitle,
     heading: COPY.sleepHeading,
     toggle: { label: COPY.toFatigue, href: "/history?metric=fatigue" },
     valueHeader: "Hours of sleep",
   },
   fatigue: {
+    title: COPY.fatigueTitle,
     heading: COPY.fatigueHeading,
     toggle: { label: COPY.toSleep, href: "/history" },
     valueHeader: `Self-reported fatigue (1–${FATIGUE_MAX})`,
@@ -93,7 +95,7 @@ function HistoryView({
   return (
     <AppShell
       active="history"
-      title={COPY.title}
+      title={config.title}
       subtitle={historySubtitle(items)}
       overlay="bg-72"
     >
