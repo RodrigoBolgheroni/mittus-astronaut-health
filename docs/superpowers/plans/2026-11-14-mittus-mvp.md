@@ -1,17 +1,17 @@
 # Alinhamento do MVP do Mittus
 
-O Mittus é um **app web de acompanhamento de saúde para astronautas**. A proposta para a entrega é demonstrar um cenário de **fadiga antes do retorno à Terra**, ligando um check-in diário a um histórico visual, uma previsão experimental e um resumo inteligente.
+O Mittus é um **app web de acompanhamento de saúde para astronautas**. A proposta para a entrega é demonstrar um cenário de **fadiga antes do retorno à Terra**, ligando o check-in diário e a previsão experimental do Eres à recomendação e às tarefas geradas pela IA.
 
 ## Funcionalidades propostas para a entrega
 
 | Parte | O que precisa funcionar |
 | --- | --- |
-| **Check-in diário** | Registrar horas de sono, humor e fadiga percebida em um formulário curto, inspirado na experiência de registro do Flo. Salvar a entrada e atualizar o histórico. |
-| **Corpo 3D e histórico** | Exibir uma figura humana com um ponto interativo que abre o painel de sono e fadiga. No painel, mostrar os registros recentes e o que mudou. Disponibilizar o mesmo painel por botão textual com foco de teclado. |
-| **Previsão com ML** | Demonstrar uma única previsão, a chance de o astronauta **relatar fadiga elevada no próximo check-in**, usando o histórico disponível até hoje. Mostrar a saída ao lado dos registros recentes. Identificar a previsão como experimental e os dados como simulados. |
-| **Resumo inteligente do check-in** | Gerar em inglês um cartão com o que mudou em relação aos registros anteriores. O backend calcula os fatos e o modelo de linguagem redige o texto. |
-| **Contexto da missão** | Alternar entre dois cenários, **em órbita** e **retorno à Terra**. Mostrar fase, localização, destino e temperatura interna simulada da cabine. |
-| **Plano de mudança** | A partir da previsão experimental, uma regra versionada sugere acompanhar os registros ou fazer um novo check-in. O modelo de linguagem explica a ação. O astronauta pode reconhecê-la, concluí-la ou dispensá-la. |
+| **Check-in diário** | Passar por estresse, humor, conflito na equipe, fadiga com horas de sono, descrição opcional e revisão. Usar carinhas Lucide nas escalas e aceitar um valor personalizado de sono em **Other hours**. Salvar a entrada e atualizar o histórico. |
+| **Home, corpo 3D e histórico** | Abrir o checklist na Home. Usar o ponto interativo no corpo para ver uma recomendação sobre desconforto. Consultar os gráficos alinhados de sono e fadiga e os registros recentes no histórico. |
+| **Previsão com ML** | Estimar a chance de o astronauta **relatar fadiga elevada no próximo check-in**. Mostrar a previsão experimental abaixo da recomendação da IA e identificar os dados simulados. |
+| **Recomendação e tarefas geradas pela IA** | A IA da Giulia recebe os dados do check-in e a previsão do Eres. Gera a recomendação em inglês para **Make sense of the changes** e as tarefas exibidas em **My plan**. |
+| **Contexto e cadastro de missão** | Abrir **Register a mission** pelo ícone do menu. O formulário cobre os dados da missão e os trechos de ida e retorno. No mapa, alternar entre as fases e ver posição, partida, destino e temperatura da cabine quando disponível. |
+| **Check-in Actions** | Neves registra as ações e controla seus estados. O astronauta abre o checklist pela Home ou pela recomendação. Em **My plan**, usa **Got it**, **Mark complete** ou **Dismiss**. |
 
 As rotas, tabelas e responsabilidades por funcionalidade estão no [FEATURES.md](../../../FEATURES.md).
 
@@ -20,20 +20,21 @@ O Human Research Program da NASA associa sono insuficiente e horários irregular
 ## Como demonstrar
 
 1. Abrir o painel de um astronauta fictício em órbita e ver o histórico dos últimos dias.
-2. Salvar um check-in com sono, humor e fadiga. Conferir a nova entrada no histórico.
-3. Usar o corpo 3D para abrir o painel de sono e fadiga e ver a previsão para o próximo check-in.
-4. Selecionar **Retorno à Terra** e conferir a atualização do contexto da missão.
-5. Clicar em **Generate insight** e conferir se o resumo compara o último check-in com os registros anteriores.
-6. Abrir o plano de mudança, conferir a ação sugerida e marcá-la como concluída. Recarregar e comprovar que o status foi preservado.
+2. Completar o check-in com **Other hours** e uma descrição opcional. Salvar e conferir a entrada no histórico.
+3. Abrir a recomendação sobre desconforto pelo corpo e consultar os gráficos de sono e fadiga no histórico.
+4. Abrir **Make sense of the changes** e conferir a recomendação e a previsão do Eres.
+5. Usar **Open task checklist** para ver as tarefas. Acionar **Got it** e **Mark complete** e recarregar para conferir o status salvo.
+6. Abrir **Register a mission** pelo ícone do menu. Voltar ao mapa, selecionar **Retorno à Terra** e conferir o contexto.
 
 ## Como validar a entrega
 
 - [ ] O app abre em inglês na URL pública. Um jurado consegue concluir o fluxo em uma janela anônima.
-- [ ] O check-in salvo aparece no histórico após recarregar. O painel abre pelo corpo 3D e pelo botão textual. Os estados são legíveis por escrito, com navegação por teclado e leitura em tela pequena.
+- [ ] O sono informado por **Other hours** e a descrição opcional aparecem no check-in salvo após recarregar. Os estados são legíveis por escrito, com navegação por teclado e leitura em tela pequena.
 - [ ] A previsão usa somente dados disponíveis até o check-in atual. Avaliar o modelo em cenários reservados para teste e compará-lo com uma regra simples, como repetir o nível de fadiga do último registro. Se o ML ainda estiver pendente no momento da entrega, demonstrar o fluxo com a regra e descrevê-la como tal.
-- [ ] A mudança de fase atualiza localização, destino e temperatura simulada da cabine no painel.
-- [ ] O resumo usa o último check-in e até sete anteriores. A comparação exclui o registro atual da média. Se faltarem registros anteriores, o cartão informa que ainda não há histórico para comparar. Em caso de falha do modelo de linguagem, o app exibe um texto com os fatos calculados.
-- [ ] Repetir a avaliação e conferir que ela reaproveita a ação. Corrigir o check-in e verificar a substituição de ações pendentes quando a avaliação mudar. Conferir acesso por sessão e o texto padrão quando o provedor falhar.
+- [ ] A opção de missão no menu abre o cadastro. Conferir os dados da missão, os dois trechos e a mudança de fase no mapa.
+- [ ] A recomendação e as tarefas da IA usam os dados do check-in e a previsão do Eres. Testar o estado de histórico insuficiente na previsão.
+- [ ] Abrir o checklist pela Home e conferir que **Got it** salva `acknowledged`. Testar concluir, dispensar, recarregar e trocar de sessão.
+- [ ] Repetir a avaliação e conferir que ela reaproveita a ação. Corrigir o check-in e verificar a substituição de ações pendentes quando a avaliação mudar.
 - [ ] Demo e aba **Project** mostram o fluxo publicado e descrevem o uso da fonte da NASA e do ML conforme implementados. [Requisitos de entrega](../../../REQUISITOS-DE-ENTREGA.md)
 
 ## Depois do MVP
@@ -56,7 +57,7 @@ Agenda proposta em **horário de Brasília**, começando no **sábado, 14/11, à
 | **Sáb., 14h–14h25 · 25 min** | Todos fecham o cenário da demo e escolhem a stack que já sabem publicar. Saem da reunião com um exemplo compartilhado no canal da equipe. Luis registra um check-in com data, horas de sono e escalas de humor e fadiga. Rodrigo acrescenta uma saída de previsão fictícia e a indicação de histórico insuficiente. Neves confirma como cada parte chega ao deploy. |
 | **Sáb., 15h15** | Luis e Neves verificam a migração, a conexão do backend e a gravação e leitura de um check-in por sessão. A partir desse teste, Luis liga o contrato da API ao banco. |
 | **Sáb., 16h** | Gabi entrega o wireframe e o asset 3D. Rodrigo compartilha o histórico fictício ampliado. Luis entrega os exemplos completos de resposta da API e Neves publica a primeira URL de teste. Luigi atualiza o protótipo com os exemplos enquanto a API real fica pronta. |
-| **Sáb., 20h** | Primeira versão integrada. Para testar, salvar um check-in, recarregar, abrir o painel 3D, mudar a fase e gerar o resumo inteligente. Cada falha sai com um responsável para domingo. |
+| **Sáb., 20h** | Primeira versão integrada. Para testar, salvar um check-in, recarregar, mudar a fase e conferir a previsão, a recomendação e as tarefas do checklist. Cada falha sai com um responsável para domingo. |
 | **Dom., 11h30** | O time escolhe a versão da demo pelo que consegue executar na URL pública. Se a previsão falhar, avalia usar a regra de reserva. Até **12h30**, corrige apenas o que impede a jornada. |
 | **Dom., 15h30–18h** | Às 15h30, demo e página **Project** prontas para revisão. Teste como jurado até 17h e submissão até 18h. |
 
@@ -66,11 +67,11 @@ No sábado, reservem **17h30–18h** para pausa. No domingo, reservem **12h30–
 
 | Quando | Tarefa e entrega |
 | --- | --- |
-| **Sáb., 14h25–16h · 1h35** | Desenhar a sequência check-in → corpo 3D → painel de fadiga → contexto da missão → resumo inteligente. Passar para Luigi a estrutura da tela primeiro. Escolher com ele uma figura 3D leve, com licença que permita o uso, e registrar a fonte. Marcar o ponto clicável e o botão textual que abre o mesmo painel. |
+| **Sáb., 14h25–16h · 1h35** | Desenhar a sequência check-in → histórico → recomendação e previsão → checklist. Incluir o ponto de desconforto na Home e o cadastro de missão no menu. Escolher com Luigi uma figura 3D leve e licenciada e registrar a fonte. |
 | **Sáb., 16h–17h30 · 1h30** | Entregar a copy em inglês, a hierarquia do painel e os estados de formulário inválido, previsão indisponível e carregamento. Esboçar a demo. A proposta é usar slides em inglês com capturas da aplicação. |
-| **Sáb., 18h–20h · 2h** | Revisar o fluxo implementado com Luigi, em desktop e tela estreita. Conferir se o estado é legível por texto, se o formulário é rápido de preencher e se o botão **Generate insight** é fácil de achar. |
+| **Sáb., 18h–20h · 2h** | Revisar o fluxo implementado com Luigi, em desktop e tela estreita. Conferir se os estados são legíveis, se o formulário é rápido de preencher e se o checklist é fácil de encontrar. |
 | **Dom., 9h30–12h30 · 3h** | Revisar as correções visuais e fechar o roteiro da demo com Rodrigo. Validar a sequência e os termos em inglês na versão escolhida às 11h30. |
-| **Dom., 13h30–15h30 · 2h** | Capturar telas da versão pública e publicar a demo. Incluir equipe, nomes, desafio, fonte NASA, check-in, painel e resumo inteligente em **até sete slides**. Entregar o link a Rodrigo. |
+| **Dom., 13h30–15h30 · 2h** | Capturar telas da versão pública e publicar a demo. Incluir equipe, nomes, desafio, fonte NASA, check-in, painel, previsão, recomendação e checklist em **até sete slides**. Entregar o link a Rodrigo. |
 
 ### Luigi — Frontend
 
@@ -93,7 +94,9 @@ No sábado, reservem **17h30–18h** para pausa. No domingo, reservem **12h30–
 | **Dom., 9h30–12h30 · 3h** | Repetir o teste com duas sessões independentes e uma entrada inválida. Corrigir problemas de persistência e padronizar a resposta quando o histórico ainda for insuficiente para a previsão. |
 | **Dom., 13h30–15h30 · 2h** | Documentar como iniciar a API e repetir o cenário. Conferir a documentação com Neves e verificar que o painel exibe a saída da previsão recebida da API. |
 
-### Neves — Integração de serviços e deploy
+### Neves — Check-in Actions e deploy
+
+Integrar as tarefas geradas pela IA ao Check-in Actions e cuidar do registro e das mudanças de status.
 
 | Quando | Tarefa e entrega |
 | --- | --- |
@@ -114,14 +117,12 @@ No sábado, reservem **17h30–18h** para pausa. No domingo, reservem **12h30–
 | **Dom., 9h30–12h30 · 3h** | Testar o modelo no app, documentar qual abordagem entrou na versão escolhida e revisar o texto do resultado. Confirmar os seis membros e as instruções locais já levantadas no alinhamento de sábado. |
 | **Dom., 13h30–18h · 4h30** | Até 15h30, fechar a aba **Project** e o README em inglês, com fontes, links, dados simulados e declaração de uso de IA. Até 17h, testar o fluxo e os links com o time. Até 18h, clicar em **Submit for Judging** e conferir a confirmação. |
 
-### Giulia — Resumo inteligente e plano de mudança
+### Giulia — IA de recomendação e tarefas
 
-- Preparar casos de teste com histórico suficiente e insuficiente e definir a saída do resumo em inglês com um exemplo para Luigi.
-- Implementar o cálculo dos fatos a partir dos check-ins e a geração do resumo comparativo. Combinar com Luis a rota `POST /api/check-in-insights` e com Neves a configuração do provedor no servidor.
-- Integrar com Luigi o botão **Generate insight** e verificar números, histórico insuficiente e resposta alternativa em caso de falha do modelo. Entregar a Rodrigo a descrição de uso de IA para a submissão.
-- Para o plano, receber do backend a ação, o motivo e a previsão. Preparar a explicação em inglês e o texto padrão de cada ação da demo. Conferir com Luis e Neves a integração e com Luigi a exibição do resultado.
+- Gerar a recomendação em inglês e as tarefas do checklist a partir do check-in e da previsão do Eres.
+- Combinar com Neves como as tarefas chegam ao Check-in Actions. Conferir com Luigi a exibição da recomendação e das tarefas. Entregar a Rodrigo a descrição do uso de IA para a submissão.
 
 ### Revisão conjunta e envio
 
-- **Dom., 15h30–17h · 1h30.** Gabi abre a URL em janela anônima e executa o fluxo sem instruções. Luigi confere a interação. Luis verifica o registro. Neves confere deploy e links. Rodrigo compara previsão e dados. Giulia confere os números do resumo com o histórico. Ajustem os textos da demo e do portal conforme a versão que passou.
+- **Dom., 15h30–17h · 1h30.** Gabi abre a URL em janela anônima e executa o fluxo sem instruções. Luigi confere a interação. Luis verifica o registro. Neves confere o Check-in Actions, o deploy e os links. Rodrigo compara a previsão com os dados. Giulia confere a recomendação e as tarefas. Ajustem os textos da demo e do portal conforme a versão que passou.
 - **Dom., 17h–18h · 1h.** Rodrigo submete e guarda a confirmação. Os demais resolvem eventuais falhas da sua parte. Se houver correção depois do envio, Rodrigo reenvia e confirma a versão final antes de 23h59.
