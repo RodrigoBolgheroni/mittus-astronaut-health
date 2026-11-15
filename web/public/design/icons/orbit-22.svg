@@ -1,0 +1,14 @@
+<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="icon/orbit" clip-path="url(#clip0_0_74)">
+<path id="Vector" d="M18.6459 5.94367C19.6348 7.43843 20.1639 9.19031 20.1676 10.9826C20.1713 12.7749 19.6495 14.5289 18.6667 16.0278C17.684 17.5266 16.2834 18.7045 14.6383 19.4156C12.9931 20.1268 11.1756 20.3401 9.4105 20.0292" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke="#00C3D0"/>
+<path id="Vector_2" d="M3.35408 16.0563C2.36517 14.5612 1.83636 12.8089 1.83307 11.0163C1.82978 9.22367 2.35216 7.46944 3.33557 5.97067C4.31899 4.47189 5.72027 3.29435 7.36602 2.58375C9.01177 1.87316 10.8297 1.6607 12.595 1.97267" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke="#00C3D0"/>
+<path id="Vector_3" d="M13.75 11C13.75 12.5188 12.5188 13.75 11 13.75C9.48122 13.75 8.25 12.5188 8.25 11C8.25 9.48122 9.48122 8.25 11 8.25C12.5188 8.25 13.75 9.48122 13.75 11Z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke="#00C3D0"/>
+<path id="Vector_4" d="M19.25 4.58333C19.25 5.59586 18.4292 6.41667 17.4167 6.41667C16.4041 6.41667 15.5833 5.59586 15.5833 4.58333C15.5833 3.57081 16.4041 2.75 17.4167 2.75C18.4292 2.75 19.25 3.57081 19.25 4.58333Z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke="#00C3D0"/>
+<path id="Vector_5" d="M6.41667 17.4167C6.41667 18.4292 5.59586 19.25 4.58333 19.25C3.57081 19.25 2.75 18.4292 2.75 17.4167C2.75 16.4041 3.57081 15.5833 4.58333 15.5833C5.59586 15.5833 6.41667 16.4041 6.41667 17.4167Z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke="#00C3D0"/>
+</g>
+<defs>
+<clipPath id="clip0_0_74">
+<rect width="22" height="22" fill="white"/>
+</clipPath>
+</defs>
+</svg>
