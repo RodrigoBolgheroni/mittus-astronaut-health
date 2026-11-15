@@ -1,26 +1,182 @@
 @import "tailwindcss";
 
+/*
+ * Mittus design tokens (source: Figma file 7yzLD5bpQkWcU42c7Jsfs1, variables +
+ * Mittus/Body style). Components must use these tokens; src/tokens/index.ts is
+ * the typed mirror (kept in sync by src/tokens/tokens.test.ts).
+ */
+@theme {
+  /* colors: solid */
+  --color-bg: #0b0d12;
+  --color-surface: #181c25;
+  --color-line: #525865;
+  --color-ivory: #fffce8;
+  --color-muted: #b8bdcb;
+  --color-cyan: #00c3d0;
+  --color-purple: #c35df3;
+
+  /* colors: translucent (Figma variables of the same name) */
+  --color-bg-82: rgba(11, 13, 18, 0.82);
+  --color-bg-72: rgba(11, 13, 18, 0.72);
+  --color-cyan-17: rgba(0, 195, 208, 0.17);
+  --color-cyan-18: rgba(0, 195, 208, 0.18);
+  --color-cyan-13: rgba(0, 195, 208, 0.13);
+  --color-purple-13: rgba(195, 93, 243, 0.13);
+  --color-surface-12: rgba(24, 28, 37, 0.12);
+  --color-surface-32: rgba(24, 28, 37, 0.32);
+  --color-surface-50: rgba(24, 28, 37, 0.5);
+  --color-line-65: rgba(82, 88, 101, 0.65);
+  /* inline glass fill used by nav, metric cards, home cards (not a Figma variable) */
+  --color-glass: rgba(24, 28, 37, 0.1);
+
+  --breakpoint-canvas: 1280px;
+
+  /* spacing */
+  --spacing-gap: 16px;
+  --spacing-pad: 24px;
+
+  /* radii */
+  --radius-frame: 60px;
+  --radius-nav: 50px;
+  --radius-pill: 48px;
+  --radius-card: 28px;
+  --radius-item: 24px;
+  --radius-step: 22px;
+  --radius-option: 20px;
+  --radius-tag: 16px;
+  --radius-row: 12px;
+
+  /* typography */
+  --font-display: var(--font-cormorant), "Cormorant Garamond", Garamond, Georgia, "Times New Roman", serif;
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro", system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+
+  --text-title: 48px;
+  --text-title--line-height: 1.3;
+  --text-success: 40px;
+  --text-success--line-height: 1.3;
+  --text-feedback: 38px;
+  --text-feedback--line-height: 1.3;
+  --text-metric: 36px;
+  --text-metric--line-height: 1.3;
+  --text-section: 30px;
+  --text-section--line-height: 1.17;
+  --text-card: 28px;
+  --text-card--line-height: 1.3;
+  --text-hours-title: 27px;
+  --text-hours-title--line-height: 1.17;
+  --text-brand: 24px;
+  --text-brand--line-height: 1.3;
+  --text-option: 22px;
+  --text-option--line-height: 1.3;
+  --text-value: 20px;
+  --text-value--line-height: 1.3;
+  --text-body-lg: 17px;
+  --text-body-lg--line-height: 1.17;
+  --text-body-md: 16px;
+  --text-body-md--line-height: 1.3;
+  --text-body: 15px;
+  --text-body--line-height: 1.3;
+  --text-label: 14px;
+  --text-label--line-height: 1.3;
+  --text-caption: 13px;
+  --text-caption--line-height: 1.3;
+  --text-pill: 12px;
+  --text-pill--line-height: 1.3;
+  --text-eyebrow: 11px;
+  --text-eyebrow--line-height: 1.3;
+  --text-micro: 10px;
+  --text-micro--line-height: 1.3;
+}
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* canvas geometry (Figma frame 1280 x 832) */
+  --canvas-width: 1280px;
+  --canvas-height: 832px;
+  --content-x: 188px;
+  --content-width: 1002px;
+  --nav-x: 44px;
+  --nav-y: 61px;
+  --nav-width: 100px;
+  --nav-height: 708px;
+  --heading-y: 48px;
+  --pill-x: 1030px;
+  --pill-y: 52px;
+  --footer-y: 784px;
+  --footer-width: 1030px;
+  --heading-width: 760px;
+  color-scheme: dark;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+html,
+body {
+  background: var(--color-bg);
+  color: var(--color-ivory);
+  font-family: var(--font-sans);
+  font-size: var(--text-body);
+  line-height: 1.3;
+  -webkit-font-smoothing: antialiased;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+/* Visible keyboard focus (not designed in Figma; derived from --color-cyan). */
+:focus-visible {
+  outline: 2px solid var(--color-cyan);
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spin {
+    animation: none;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+.spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+dialog::backdrop {
+  background: var(--color-bg-82);
+}
+
+/* Figma "image 5": 2410 x 1356 at (-316, -399) in the 1280 canvas, plus the 0.2 gradient. */
+.moon-bg {
+  position: absolute;
+  width: 2410px;
+  height: 1356px;
+  left: calc(50% - 956px);
+  top: -399px;
+  background-image:
+    linear-gradient(
+      to left,
+      rgba(0, 0, 0, 0.2) 11.594%,
+      rgba(50, 50, 50, 0.2) 50.61%,
+      rgba(102, 102, 102, 0.2) 91.906%
+    ),
+    url("/design/bg-moon-body.png");
+  background-size: 100% 100%;
+}
+
+/* Stress frame (30:56): gradient alpha is 0 in Figma. */
+.moon-bg[data-gradient="none"] {
+  background-image: url("/design/bg-moon-body.png");
+}
+
+/* Stepper columns: 6 x 158.667 at the 1280 canvas; fewer columns below (cascade-safe). */
+.stepper {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+@media (min-width: 640px) {
+  .stepper {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+@media (min-width: 1280px) {
+  .stepper {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
 }
