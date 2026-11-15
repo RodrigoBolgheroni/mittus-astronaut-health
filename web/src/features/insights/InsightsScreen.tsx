@@ -6,17 +6,22 @@ import { AppShell, Slot } from "@/components/shell/AppShell";
 import { Button, ButtonLink } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { StatusPill } from "@/components/ui/StatusPill";
-import { buildMockInsight, generateInsight, useCheckIns, type CheckIn } from "@/lib/api";
+import { buildBasicSummary, generateRecommendation, useCheckIns, type CheckIn } from "@/lib/api";
+import { evaluationKey, loadRecommendation, saveRecommendation } from "@/lib/ceres/recommendation-cache";
 import { latestCheckIn, type ForecastState } from "./forecast";
 import { loadForecast } from "./loadForecast";
 
 type InsightState =
   | { kind: "idle" }
   | { kind: "generating" }
-  | { kind: "ready"; text: string }
+  | { kind: "ready"; title: string; summary: string; nextStep: string }
   | { kind: "fallback"; text: string };
 
 const PANEL_ID = "insights-panel";
+
+function toReady(insight: { title: string; summary: string; next_step: string }): InsightState {
+  return { kind: "ready", title: insight.title, summary: insight.summary, nextStep: insight.next_step };
+}
 
 /** Full-width state card (Figma 1002 wide, line-55 border). */
 function StateCard({
@@ -86,20 +91,39 @@ export function InsightsScreen() {
           ? evaluated.state
           : { kind: "loading" };
 
+  // Ceres: card + AI tasks for the latest check-in (the call takes 6-45 s, so it never blocks the check-in).
+  const forecastData = forecast.kind === "ready" ? forecast.forecast : null;
   const generate = useCallback(async () => {
     if (!latest) return;
+    const key = evaluationKey(latest, forecastData?.status === "ready" ? forecastData.probability_high_fatigue : null);
     const token = ++generation.current;
-    setInsight({ kind: "generating" });
+    const cached = loadRecommendation(key);
     let next: InsightState;
-    try {
-      const result = await generateInsight(latest.id);
-      // source "mock" = TEMPORARY client fallback (endpoint missing): shown as the basic summary.
-      next = result.source === "api" ? { kind: "ready", text: result.text } : { kind: "fallback", text: result.text };
-    } catch {
-      next = { kind: "fallback", text: buildMockInsight(latest).text };
+    if (cached) {
+      next = toReady(cached.insight);
+    } else {
+      setInsight({ kind: "generating" });
+      try {
+        const result = await generateRecommendation(checkIns.data?.items ?? [latest], forecastData ?? undefined);
+        if (token !== generation.current) return;
+        saveRecommendation(key, latest.id, result);
+        next = toReady(result.insight);
+      } catch {
+        // Ceres down or not configured: show the recorded values instead.
+        next = { kind: "fallback", text: buildBasicSummary(latest) };
+      }
     }
     if (token === generation.current) setInsight(next);
-  }, [latest]);
+  }, [latest, forecastData, checkIns.data]);
+
+  // Generate once per check-in and forecast; "Cancel" and a failure leave the manual retry in place.
+  const autoKey = latest && forecast.kind === "ready" ? `${latest.id}:${latest.updated_at}:${forecastRun}` : null;
+  const autoRan = useRef<string | null>(null);
+  useEffect(() => {
+    if (!autoKey || autoRan.current === autoKey) return;
+    autoRan.current = autoKey;
+    void generate();
+  }, [autoKey, generate]);
 
   const cancel = useCallback(() => {
     generation.current += 1;
@@ -177,9 +201,9 @@ export function InsightsScreen() {
       >
         {live}
         <Slot top={212}>
-          {/* data-insight-source: the text is the client's TEMPORARY mock (PENDING: no "mock" mark in Figma). */}
+          {/* data-insight-source="basic": values echoed by the client because Ceres was unavailable. */}
           <StateCard height={484} pill="BASIC SUMMARY" title={<span className="text-[42px] leading-[1.3]">The numbers tell part of the story.</span>}>
-            <p data-insight-source="mock" className="max-w-[900px] text-value text-ivory">
+            <p data-insight-source="basic" className="max-w-[900px] text-value text-ivory">
               {insight.text}
             </p>
             <p className="max-w-[900px] text-label text-muted">This summary uses your recorded values.</p>
@@ -293,29 +317,25 @@ export function InsightsScreen() {
           className="flex flex-col items-start gap-3 p-pad outline-none canvas:h-[280px] canvas:overflow-y-auto"
         >
           <p className="text-caption text-cyan">AI RECOMMENDATION</p>
-          {/* PENDING: the Figma headline/paragraphs are generated copy; the contract only returns one text. */}
           <h2 id="insight-title" className="font-display text-[34px] leading-[1.17] font-medium text-ivory">
-            Check-in insight
+            {insight.kind === "ready" ? insight.title : "Check-in insight"}
           </h2>
           {insight.kind === "ready" ? (
-            <p data-insight-source="api" className="max-w-[954px] text-body-lg text-ivory">
-              {insight.text}
-            </p>
+            <div data-insight-source="api" className="flex max-w-[954px] flex-col gap-2">
+              <p className="text-body-lg text-ivory">{insight.summary}</p>
+              <p className="text-body text-muted">{insight.nextStep}</p>
+            </div>
           ) : null}
           <Actions>
             {insight.kind === "ready" ? (
               <ButtonLink href="/plan" className="canvas:w-[256px]">
                 Open task checklist
               </ButtonLink>
-            ) : null}
-            <Button
-              variant={insight.kind === "ready" ? "secondary" : "primary"}
-              onClick={() => void generate()}
-              disabled={!latest}
-              className="canvas:w-[256px]"
-            >
-              Generate insight
-            </Button>
+            ) : (
+              <Button onClick={() => void generate()} disabled={!latest} className="canvas:w-[256px]">
+                Generate insight
+              </Button>
+            )}
           </Actions>
         </Card>
       </Slot>

@@ -6,6 +6,7 @@ import { AppShell, Slot } from "@/components/shell/AppShell";
 import { Button, ButtonLink } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { isApiError, useCheckInActions, useCheckIns, type CheckInActionStatus } from "@/lib/api";
+import { taskTitleFor } from "@/lib/ceres/recommendation-cache";
 import { ChecklistRow } from "./ChecklistRow";
 import {
   CONTROLS,
@@ -158,7 +159,7 @@ export function PlanScreen() {
                 <ChecklistRow
                   id="plan-task"
                   complete={status === "completed"}
-                  task={taskTitle(current.action_code)}
+                  task={current.title || taskTitleFor(current.check_in_id, current.action_code) || taskTitle(current.action_code)}
                   status={ROW_STATUS[status]}
                 />
               ) : null}
@@ -209,12 +210,6 @@ export function PlanScreen() {
             {explanation ?? noAction ? (
               <p className="text-body leading-[1.17] text-muted">{explanation ?? noAction}</p>
             ) : null}
-
-            <div>
-              <ButtonLink variant="quiet" href="/plan/history" className="canvas:w-[200px]">
-                Action history
-              </ButtonLink>
-            </div>
           </Card>
         )}
       </Slot>

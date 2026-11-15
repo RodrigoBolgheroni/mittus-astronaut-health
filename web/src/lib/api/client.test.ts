@@ -4,7 +4,8 @@ import { afterEach, describe, it } from "node:test";
 import {
   ApiError,
   evaluateCheckInActions,
-  generateInsight,
+  buildBasicSummary,
+  generateRecommendation,
   getMissionContext,
   listCheckIns,
   putCheckIn,
@@ -83,21 +84,22 @@ describe("api client", () => {
     });
   });
 
-  it("generateInsight returns a mock on 404", async () => {
-    const item = {
-      id: "c1", check_in_date: "2026-01-02", sleep_hours: 7, stress_level: 2, mood_level: 3,
-      team_conflict_level: 1, fatigue: 2, description: null, created_at: "", updated_at: "",
-    };
-    mockFetch(json({ message: "Not Found" }, 404), json({ items: [item], today: "x", timezone: "UTC" }));
-    const insight = await generateInsight("c1");
-    assert.equal(calls[0].url, "http://localhost:3001/api/check-in-insights");
+  it("POSTs the check-ins and forecast to the same-origin recommendations route", async () => {
+    mockFetch(json({ insight: { title: "t" }, tasks: [] }));
+    const forecast = { status: "unavailable" } as const;
+    await generateRecommendation([{ id: "c1" } as never], forecast);
+    assert.equal(calls[0].url, "/api/recommendations");
     assert.equal(calls[0].init.method, "POST");
-    assert.equal(insight.source, "mock");
-    assert.match(insight.text, /sleep 7 h/);
+    assert.equal(calls[0].init.body, JSON.stringify({ check_ins: [{ id: "c1" }], forecast }));
   });
 
-  it("generateInsight returns api text when available", async () => {
-    mockFetch(json({ text: "hello" }));
-    assert.deepEqual(await generateInsight("c1"), { text: "hello", source: "api" });
+  it("rejects with ApiError when Ceres is unavailable", async () => {
+    mockFetch(json({ error: "ceres_unavailable" }, 503));
+    await assert.rejects(generateRecommendation([{ id: "c1" } as never]), (e: unknown) => e instanceof ApiError && e.status === 503);
+  });
+
+  it("builds a basic summary from the recorded values", () => {
+    const text = buildBasicSummary({ check_in_date: "2026-11-14", sleep_hours: 6.5, stress_level: 2, mood_level: 2, team_conflict_level: 1, fatigue: 5 } as never);
+    assert.match(text, /sleep 6.5 h/);
   });
 });

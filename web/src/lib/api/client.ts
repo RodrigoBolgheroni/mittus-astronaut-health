@@ -10,16 +10,16 @@
  *   ({statusCode, code, message}). The body does NOT carry the current action;
  *   call `listCheckInActions` to read it.
  *
- * MISSING BACKEND ENDPOINT: `POST /api/check-in-insights` does not exist yet.
- * `generateInsight` calls it and falls back to a TEMPORARY MOCK on 404 or
- * network failure.
+ * `generateRecommendation` is served by the Next.js app (`/api/recommendations`),
+ * which calls the Ceres AI service server-side.
  */
 import type {
   BackendErrorBody,
   CheckIn,
   CheckInActionStatus,
   CheckInAction,
-  CheckInInsight,
+  CeresForecast,
+  CeresRecommendation,
   CheckInOptions,
   EvaluateActionsResult,
   ListCheckInActions,
@@ -140,42 +140,29 @@ export function getMissionContext(phase: MissionPhase): Promise<MissionContext> 
   return request<MissionContext>(`/api/mission-context?phase=${enc(phase)}`, { sameOrigin: true });
 }
 
-/** Neutral text echoing the check-in values only. */
-export function buildMockInsight(checkIn: CheckIn): CheckInInsight {
-  return {
-    // TEMPORARY MOCK: replace once POST /api/check-in-insights exists.
-    source: "mock",
-    text:
-      `Check-in for ${checkIn.check_in_date}: sleep ${checkIn.sleep_hours} h, ` +
-      `stress ${checkIn.stress_level}/5, mood ${checkIn.mood_level}/5, ` +
-      `team conflict ${checkIn.team_conflict_level}/5, fatigue ${checkIn.fatigue}/7.`,
-  };
-}
-
 /**
- * POST /api/check-in-insights ({check_in_id}). The endpoint does not exist yet;
- * on 404 or network failure a TEMPORARY MOCK (`source: 'mock'`) is returned.
- * Other HTTP errors still throw ApiError.
+ * POST /api/recommendations on the Next.js origin: the server proxies to Ceres
+ * (card + AI tasks). Rejects with ApiError (503 when Ceres is down or not
+ * configured) so the caller can show the basic summary.
  */
-export async function generateInsight(checkInId: string): Promise<CheckInInsight> {
-  try {
-    const result = await request<{ text?: string; insight?: string }>("/check-in-insights", {
-      method: "POST",
-      body: { check_in_id: checkInId },
-    });
-    const text = result?.text ?? result?.insight;
-    if (typeof text === "string") return { text, source: "api" };
-    throw new ApiError(502, result, "Unexpected insight response");
-  } catch (error) {
-    if (error instanceof ApiError && error.status !== 404) throw error;
-    // 404 (endpoint missing) or network failure: fall back to the mock.
-    const checkIn = await findCheckInById(checkInId);
-    if (!checkIn) throw error;
-    return buildMockInsight(checkIn);
-  }
+export function generateRecommendation(
+  checkIns: readonly CheckIn[],
+  forecast?: CeresForecast,
+  signal?: AbortSignal,
+): Promise<CeresRecommendation> {
+  return request<CeresRecommendation>("/api/recommendations", {
+    method: "POST",
+    sameOrigin: true,
+    body: { check_ins: checkIns, ...(forecast ? { forecast } : {}) },
+    signal,
+  });
 }
 
-async function findCheckInById(checkInId: string): Promise<CheckIn | undefined> {
-  const { items } = await listCheckIns(90);
-  return items.find((item) => item.id === checkInId);
+/** Neutral text echoing the latest check-in values only (shown when Ceres is unavailable). */
+export function buildBasicSummary(checkIn: CheckIn): string {
+  return (
+    `Check-in for ${checkIn.check_in_date}: sleep ${checkIn.sleep_hours} h, ` +
+    `stress ${checkIn.stress_level}/5, mood ${checkIn.mood_level}/5, ` +
+    `team conflict ${checkIn.team_conflict_level}/5, fatigue ${checkIn.fatigue}/7.`
+  );
 }
