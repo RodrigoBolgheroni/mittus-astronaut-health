@@ -6,10 +6,11 @@ O Mittus participa do desafio **Create Health Monitoring Software for Astronauts
 
 | Área | Responsáveis |
 | --- | --- |
-| Backend | Luis e Neves |
+| Backend do check-in diário | Luis |
+| Check-in Actions e estados das tarefas | Neves |
 | Frontend | Luigi |
 | Machine Learning | Rodrigo |
-| Resumo inteligente e explicação do plano de mudança | Giulia |
+| IA de recomendação e geração das tarefas do checklist | Giulia |
 | Design | Gabi |
 
 ## Evento local — Campinas, SP
