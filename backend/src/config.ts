@@ -20,6 +20,7 @@ export class RuntimeConfig {
   readonly webOrigin: string;
   readonly production: boolean;
   readonly port: number;
+  readonly fatigueForecastUrl: string | undefined;
 
   constructor() {
     const { DATABASE_URL, SESSION_SECRET, WEB_ORIGIN } = process.env;
@@ -48,6 +49,26 @@ export class RuntimeConfig {
     ) {
       throw new Error('WEB_ORIGIN must be an HTTP origin without a path.');
     }
+    const forecastUrl = process.env.FATIGUE_FORECAST_URL;
+    if (forecastUrl !== undefined) {
+      try {
+        const parsed = new URL(forecastUrl);
+        if (
+          !['http:', 'https:'].includes(parsed.protocol) ||
+          !parsed.hostname ||
+          parsed.username ||
+          parsed.password ||
+          parsed.hash ||
+          forecastUrl.includes('#')
+        ) {
+          throw new Error();
+        }
+      } catch {
+        throw new Error(
+          'FATIGUE_FORECAST_URL must be an HTTP URL without credentials or a fragment.',
+        );
+      }
+    }
     const port = Number(process.env.PORT ?? 3001);
     if (!Number.isInteger(port) || port < 1 || port > 65535) {
       throw new Error('PORT must be an integer between 1 and 65535.');
@@ -57,5 +78,6 @@ export class RuntimeConfig {
     this.webOrigin = origin.origin;
     this.production = process.env.NODE_ENV === 'production';
     this.port = port;
+    this.fatigueForecastUrl = forecastUrl;
   }
 }

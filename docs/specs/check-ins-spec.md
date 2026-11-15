@@ -27,7 +27,7 @@ Nomes de campos, mensagens da API e textos apresentados no aplicativo devem esta
 - Há no máximo um check-in por `(session_id, check_in_date)`.
 - Sono e as quatro escalas são obrigatórios; `description` é opcional.
 - As tabelas de opções das escalas já existem e são referenciadas por chaves estrangeiras.
-- `check_in_actions` já existe, mas seu processamento será uma implementação posterior.
+- `check_in_actions` is now processed by the same backend; see the [implemented action contracts](../../backend/README.md#check-in-actions).
 
 ### Decisões confirmadas para esta primeira versão
 
@@ -261,6 +261,7 @@ backend/
 - Usar o pooler adequado à execução da aplicação; comandos de migração/diff devem usar conexão direta ou pooler em modo sessão, conforme disponibilidade de rede.
 - Nenhuma nova tabela é necessária para este recorte. Preservar as restrições SQL de faixa, chaves estrangeiras e RLS existentes.
 - O acesso será exclusivamente pelo backend. O RLS existente não identifica sessões de demonstração; o isolamento por sessão deve ser implementado explicitamente em cada operação do backend.
+- The canonical SQL history is `supabase/migrations`. Isolated tests replay those files instead of using `db push`; the recovered baseline and original mission migration are described in the [database synchronization guidance](../../backend/README.md#database-schema-synchronization). The existing Supabase project is not reset or migrated by test setup.
 
 ## 8. Critérios de aceite e testes
 
@@ -293,4 +294,4 @@ Implementação e comandos de execução: [README do backend](../../backend/READ
 5. Padronizar erros e executar os testes de aceite.
 6. Integrar o frontend: carregar opções e calendário, enviar `PUT` e refazer a consulta após sucesso.
 
-O resultado esperado desta SPEC é uma API persistente e integrável ao calendário. Previsão de fadiga, geração de insights e processamento de ações terão contratos próprios em etapas posteriores.
+This specification covers the daily check-in API. Check-in actions are also implemented; see the [backend action contract](../../backend/README.md#check-in-actions) for evaluation, history and status updates. Actions now consume the shared trained synthetic fatigue model locally; language-model insights remain a separate integration.

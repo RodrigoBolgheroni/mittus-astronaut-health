@@ -19,7 +19,7 @@ FEATURE_NAMES = [
     "mean_sleep_hours_session", "mean_fatigue_session",
     "projected_sleep_trend", "projected_fatigue_trend",
 ]
-MODEL_PATH = Path(__file__).resolve().parents[1] / "web" / "src" / "lib" / "fatigue-model.json"
+MODEL_PATH = Path(__file__).resolve().parent / "fatigue-model.json"
 
 
 def clamp(value, lower, upper):

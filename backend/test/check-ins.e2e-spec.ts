@@ -42,7 +42,11 @@ describe('Check-ins API with PostgreSQL', () => {
   const get = (cookie: string, url = '/api/check-ins') =>
     request(app.getHttpServer()).get(url).set('Cookie', cookie);
   const put = (cookie: string, data: unknown = payload, url = path) =>
-    request(app.getHttpServer()).put(url).set('Cookie', cookie).send(data);
+    request(app.getHttpServer())
+      .put(url)
+      .set('Cookie', cookie)
+      .set('Content-Type', 'application/json')
+      .send(JSON.stringify(data));
 
   beforeAll(async () => {
     process.env.DATABASE_URL = testDatabaseUrl();

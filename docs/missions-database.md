@@ -1,6 +1,6 @@
 # Cadastro da missão — banco e API
 
-O cadastro da missão diz **de onde cada trecho parte e para onde vai**. A **posição atual** da nave não fica no banco: a rota consulta na hora (a ISS pela wheretheiss.at enquanto a nave está acoplada; no retorno, o TLE da CelesTrak se a missão tiver `norad_id`, senão um ponto simulado). Detalhes em [Posição da nave e fontes externas](mission-context-backend.md).
+The mission registry stores each leg's departure and destination, not the craft's current position. Docked position comes from wheretheiss.at. In free flight, a registered `norad_id` selects CelesTrak orbital elements propagated with SGP4; without them, the configured simulated point is labeled explicitly. See the [position source contract](mission-context-backend.md).
 
 Migração: [`supabase/migrations/20261114220000_create_missions.sql`](../supabase/migrations/20261114220000_create_missions.sql)
 
@@ -67,9 +67,11 @@ Novos blocos na resposta:
 | `DATABASE_URL` | Mesma conexão do backend. Opcional: sem ela, a rota usa a missão demo embutida. |
 | `SESSION_SECRET` | Mesmo valor do backend, para ler o cookie de sessão. Opcional: sem ela, toda requisição usa a missão demo. |
 
+Both server runtimes must use the same `SESSION_SECRET` and database. The backend remains the only cookie issuer. Because its cookie is host-only, production routing must expose the backend session endpoints and the Next.js mission route on the same hostname (for example through a reverse proxy); sharing only a parent site does not share a host-only cookie. Localhost ports can differ. Without the shared cookie or secret, the web route intentionally shows the demo mission rather than a session-specific one.
+
 Senhas com caracteres especiais (`@`, `#`, `/`, `%`) precisam estar codificadas na URL (`@` → `%40`, `#` → `%23`).
 
 ## Fora deste recorte
 
-- **Prisma do backend.** O backend não usa estas tabelas, por isso elas não estão em `backend/prisma/schema.prisma`. Não rode `prisma db push` contra o Supabase: o comando tentaria remover tabelas que não estão no schema.
+- **Backend Prisma.** The shared schema now maps `Mission`, `MissionPlace`, `MissionLeg` and `SessionMission`, alongside check-ins/actions. The mission-context endpoint remains in Next.js and uses its existing `pg` reader; do not create a duplicate NestJS route. Use the [canonical SQL history and replay guidance](../backend/README.md#database-schema-synchronization), not `prisma db push` or a reset against the shared Supabase project. The partial demo-mission unique index, CHECK constraints and RLS remain SQL-owned.
 - **Criação do vínculo.** Nenhuma rota grava em `session_missions` ainda; o vínculo é feito por SQL.
