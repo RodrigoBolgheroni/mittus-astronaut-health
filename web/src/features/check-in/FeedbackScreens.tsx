@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Icon, type IconName } from "@/components/ui/Icon";
 import { useCheckIn } from "./CheckInProvider";
-import { stepPath } from "./scales";
 import { useConfirmSave } from "./useConfirmSave";
 
 type PanelProps = {
@@ -66,9 +65,8 @@ export function SavingScreen() {
 
 /** Figma 32:550 "Save error". */
 export function SaveErrorScreen() {
-  const { errorDetail } = useCheckIn();
+  const { errorDetail, reviewAnswers } = useCheckIn();
   const confirmSave = useConfirmSave();
-  const router = useRouter();
   const retry = useRef<HTMLButtonElement>(null);
   useEffect(() => retry.current?.focus(), []);
 
@@ -87,7 +85,8 @@ export function SaveErrorScreen() {
           <Button ref={retry} onClick={confirmSave} className="min-w-0 flex-1 basis-[200px]">
             Try again
           </Button>
-          <Button variant="secondary" onClick={() => router.push(stepPath("review"))} className="min-w-0 flex-1 basis-[200px]">
+          {/* This screen is rendered by the Review step: leaving the error state shows the answers again. */}
+          <Button variant="secondary" onClick={reviewAnswers} className="min-w-0 flex-1 basis-[200px]">
             Review answers
           </Button>
         </div>

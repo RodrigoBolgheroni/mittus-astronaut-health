@@ -1,8 +1,9 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
-import { getCheckInOptions, putCheckIn, type CheckIn, type PutCheckInBody } from "@/lib/api";
+import { getCheckInOptions, listCheckIns, putCheckIn, type CheckIn, type PutCheckInBody } from "@/lib/api";
+import { answersFromCheckIn, todaysCheckIn } from "./saved-answers";
 import { mergeBackendLabels, SCALES, type ScaleDef, type ScaleId } from "./scales";
 
 export type Answers = {
@@ -37,6 +38,8 @@ type CheckInFlow = {
   discardOpen: boolean;
   askDiscard: () => void;
   keepEditing: () => void;
+  /** Leaves the Save error state and shows the Review step again (answers are kept). */
+  reviewAnswers: () => void;
   /** Resets the flow. */
   reset: () => void;
   /** PUT today's (UTC) check-in. Resolves true on success. */
@@ -66,6 +69,25 @@ export function CheckInProvider({ children }: { children: ReactNode }) {
   const [saved, setSaved] = useState<CheckIn | null>(null);
   const [errorDetail, setErrorDetail] = useState<string | null>(null);
   const [discardOpen, setDiscardOpen] = useState(false);
+  // Set on the first edit: a late response must not overwrite what the user changed.
+  const touched = useRef(false);
+
+  // Reopening the flow edits today's saved check-in instead of starting from the defaults.
+  useEffect(() => {
+    let cancelled = false;
+    listCheckIns(1)
+      .then((list) => {
+        const today = todaysCheckIn(list);
+        if (cancelled || touched.current || !today) return;
+        setAnswers(answersFromCheckIn(today));
+      })
+      .catch(() => {
+        /* offline / backend down: start from the defaults */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Prefer the labels served by the backend; Figma labels are the fallback.
   useEffect(() => {
@@ -88,10 +110,17 @@ export function CheckInProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const setAnswer = useCallback<CheckInFlow["setAnswer"]>((key, value) => {
+    touched.current = true;
     setAnswers((prev) => ({ ...prev, [key]: value }));
   }, []);
 
+  const reviewAnswers = useCallback(() => {
+    setStatus("idle");
+    setErrorDetail(null);
+  }, []);
+
   const reset = useCallback(() => {
+    touched.current = true;
     setAnswers(DEFAULT_ANSWERS);
     setStatus("idle");
     setSaved(null);
@@ -125,10 +154,11 @@ export function CheckInProvider({ children }: { children: ReactNode }) {
       discardOpen,
       askDiscard: () => setDiscardOpen(true),
       keepEditing: () => setDiscardOpen(false),
+      reviewAnswers,
       reset,
       save,
     }),
-    [answers, setAnswer, scales, status, saved, errorDetail, discardOpen, reset, save],
+    [answers, setAnswer, scales, status, saved, errorDetail, discardOpen, reviewAnswers, reset, save],
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
