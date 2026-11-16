@@ -37,10 +37,8 @@ Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/bui
 
 ## Ceres (AI recommendation)
 
-The "Make sense of the changes" card and the AI task titles come from the Ceres service (`../ceres`). The browser never calls Ceres (it has no authentication); it calls the Next.js route `POST /api/recommendations`, which strips the payload to the seven contract fields (no `description`, no session id) and forwards it to Ceres.
+Insights and Plan consume `POST /api/check-ins/{id}/actions/evaluate` from the NestJS backend. It generates and persists the recommendation and every task, using canonical session-owned data. Task titles and progress survive reloads and tabs; there is no browser generation pipeline or sessionStorage title bridge.
 
-| Variable | Use |
-| --- | --- |
-| `CERES_URL` | Server-only base URL of Ceres, e.g. `http://localhost:8000`. Unset or unreachable: the Insights screen shows the basic summary and the check-in is unaffected. |
+Configure `CERES_URL` only on the backend. Ceres remains a separately deployed service; unavailable generation produces a clearly labeled persisted basic summary without hiding an independently available Eres forecast. `NEXT_PUBLIC_API_URL` selects the backend origin; send credentials and keep the session cookie visible to both API surfaces.
 
-Ceres takes 6–45 s per call, so the result is cached per tab by check-in revision and forecast (`src/lib/ceres/recommendation-cache.ts`). Once the backend persists the Ceres tasks (`title` on `check_in_actions`), the Plan screen prefers that title.
+Mission registration requires a signed session and JSON. Browser Origin must match trusted `WEB_ORIGIN` (or the Next request origin when unconfigured); nonbrowser requests without Origin still require the signed session. Public registrations cannot change the global demo mission; that selection is seed/manual-admin-only.

@@ -74,4 +74,4 @@ Senhas com caracteres especiais (`@`, `#`, `/`, `%`) precisam estar codificadas 
 ## Fora deste recorte
 
 - **Backend Prisma.** The shared schema now maps `Mission`, `MissionPlace`, `MissionLeg` and `SessionMission`, alongside check-ins/actions. The mission-context endpoint remains in Next.js and uses its existing `pg` reader; do not create a duplicate NestJS route. Use the [canonical SQL history and replay guidance](../backend/README.md#database-schema-synchronization), not `prisma db push` or a reset against the shared Supabase project. The partial demo-mission unique index, CHECK constraints and RLS remain SQL-owned.
-- **Criação do vínculo.** Nenhuma rota grava em `session_missions` ainda; o vínculo é feito por SQL.
+- **Session linking.** `POST /api/missions` now creates an ordinary mission, both legs and its `session_missions` link atomically. A valid shared signed session and JSON are required; browser Origin must match trusted configuration. Public callers cannot change the global demo mission.

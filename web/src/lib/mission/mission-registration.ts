@@ -29,7 +29,6 @@ export type MissionRegistration = {
   ll2LaunchId: string | null;
   referenceLabel: string | null;
   referenceUrl: string | null;
-  isDemo: boolean;
   legs: Record<
     MissionPhase,
     {
@@ -65,8 +64,9 @@ export function parseUtcDateTime(value: string): string | null {
 }
 
 export function validateRegistration(input: unknown): ValidationResult {
-  const body = (input && typeof input === "object" ? input : {}) as Partial<MissionRegistrationInput>;
+  const body = (input && typeof input === "object" ? input : {}) as Partial<MissionRegistrationInput> & { isDemo?: unknown };
   const errors: RegistrationErrors = {};
+  if (body.isDemo === true) errors.isDemo = "Demo selection is not available through public registration.";
 
   const name = text(body.name);
   if (!name) errors.name = "Enter a mission name.";
@@ -138,7 +138,6 @@ export function validateRegistration(input: unknown): ValidationResult {
       ll2LaunchId: ll2 || null,
       referenceLabel: referenceLabel || null,
       referenceUrl: url || null,
-      isDemo: body.isDemo === true,
       legs,
     },
   };

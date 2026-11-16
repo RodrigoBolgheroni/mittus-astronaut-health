@@ -1,32 +1,32 @@
-# Carga de dados do Mittus
+# Mittus database seed
 
-O `seed.mjs` carrega dados **simulados** e reproduzíveis nas tabelas `check_ins` e `check_in_actions` do banco Supabase do Mittus. As tabelas `*_options` já vêm preenchidas pela migração, e o script só as lê.
+`seed.mjs` loads reproducible **simulated** data into `check_ins` and `check_in_actions`. Lookup tables are read-only.
 
-## O que é carregado
+## Seed data
 
-| Conjunto | `session_id` | Conteúdo |
+| Set | `session_id` | Contents |
 | --- | --- | --- |
-| **Astronauta da demo** | `00000000-0000-4000-8000-000000000001` | 21 check-ins escritos à mão: 10 dias de rotina em órbita, depois preparação para o retorno, com sono caindo e fadiga subindo até 5 (*Moderately tired*). O último check-in é de **ontem**, para a demo salvar o de hoje ao vivo. |
-| **Astronautas sintéticos** | `00000000-0000-4000-8000-000000000100` em diante | 40 trajetórias de 30 dias, com cerca de 8% de dias faltando, nos perfis `stable`, `gradual_decline`, `pre_return_stress`, `acute_episodes` e `recovery`. Servem para treinar e testar a previsão de fadiga. |
-| **Ações sugeridas** | — | Uma avaliação por check-in pela regra `seed-rules-v1`, com `forecast_snapshot` de uma heurística (`seed-heuristic-v1`) que usa apenas os check-ins até aquela data. |
+| Demo astronaut | `00000000-0000-4000-8000-000000000001` | 21 hand-written check-ins, ending yesterday UTC so the live demo can save today's entry. |
+| Synthetic astronauts | `00000000-0000-4000-8000-000000000100` onward | 40 trajectories of 30 days by default, with realistic gaps and five profiles. |
+| Suggested tasks | — | One forecast-backed `monitor` or `recheck` task per check-in, generated from that session's history up to the check-in date. |
 
-Todo `session_id` da carga fica no prefixo `00000000-0000-4000-8000-`. O script só apaga ou substitui linhas desse prefixo, então os check-ins de sessões reais do app nunca são afetados. Com o mesmo `--seed` e a mesma `--end-date`, os dados gerados são sempre idênticos.
+All seeded sessions use the `00000000-0000-4000-8000-` prefix. The script only deletes or replaces rows in that namespace. Given the same `--seed` and `--end-date`, generated data is deterministic.
 
-## Como rodar
+## Run
 
 ```bash
 cd db
 npm install
-node seed.mjs                                  # simulação: gera e mostra, sem conectar
-node seed.mjs --env ../caminho/.env --check    # grava numa transação, valida e dá ROLLBACK
-node seed.mjs --env ../caminho/.env --apply    # grava e confirma (substitui a carga anterior)
-node seed.mjs --env ../caminho/.env --reset    # remove só as linhas da carga
+node seed.mjs                                  # generate and print; no database connection
+node seed.mjs --env ../path/.env --check       # write in a transaction, validate, then ROLLBACK
+node seed.mjs --env ../path/.env --apply       # replace seed rows and COMMIT
+node seed.mjs --env ../path/.env --reset       # delete only seed rows
 ```
 
-Opções: `--sessions N` (0 = só a demo), `--days N`, `--end-date AAAA-MM-DD`, `--seed N` e `--csv arquivo.csv`, que exporta os check-ins com o perfil de cada sessão para o treino do modelo.
+Options: `--sessions N` (`0` = demo only), `--days N`, `--end-date YYYY-MM-DD`, `--seed N`, and `--csv PATH`.
 
-A conexão vem de `DATABASE_URL`, pela variável de ambiente ou pelo `.env` indicado em `--env`. Prefira `--env` a `node --env-file`, porque o parser do Node corta valores sem aspas no caractere `#`.
+The connection uses `DATABASE_URL` from the environment or `--env`. Encode reserved characters in URL credentials (for example, `#` as `%23`). Remote connections require verified TLS certificates; set `PGSSLROOTCERT` to a trusted CA file when needed. Plain PostgreSQL is allowed only for loopback development hosts.
 
-## Escalas
+## Scales
 
-Em todas as escalas, um valor mais alto indica uma situação pior: `fatigue` vai de 1 a 7, e `mood_level`, `stress_level` e `team_conflict_level` vão de 1 a 5. A carga considera **fadiga elevada** a partir de `fatigue >= 5`.
+Higher values indicate worse conditions: `fatigue` is 1–7; `mood_level`, `stress_level`, and `team_conflict_level` are 1–5. The seed treats `fatigue >= 5` as elevated.

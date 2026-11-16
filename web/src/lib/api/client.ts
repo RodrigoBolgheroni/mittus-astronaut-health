@@ -9,17 +9,12 @@
  *   throw `ApiError` with `status === 409` and the parsed body
  *   ({statusCode, code, message}). The body does NOT carry the current action;
  *   call `listCheckInActions` to read it.
- *
- * `generateRecommendation` is served by the Next.js app (`/api/recommendations`),
- * which calls the Ceres AI service server-side.
  */
 import type {
   BackendErrorBody,
   CheckIn,
   CheckInActionStatus,
   CheckInAction,
-  CeresForecast,
-  CeresRecommendation,
   CheckInOptions,
   EvaluateActionsResult,
   ListCheckInActions,
@@ -142,23 +137,6 @@ export function getMissionContext(phase: MissionPhase): Promise<MissionContext> 
   return request<MissionContext>(`/api/mission-context?phase=${enc(phase)}`, { sameOrigin: true });
 }
 
-/**
- * POST /api/recommendations on the Next.js origin: the server proxies to Ceres
- * (card + AI tasks). Rejects with ApiError (503 when Ceres is down or not
- * configured) so the caller can show the basic summary.
- */
-export function generateRecommendation(
-  checkIns: readonly CheckIn[],
-  forecast?: CeresForecast,
-  signal?: AbortSignal,
-): Promise<CeresRecommendation> {
-  return request<CeresRecommendation>("/api/recommendations", {
-    method: "POST",
-    sameOrigin: true,
-    body: { check_ins: checkIns, ...(forecast ? { forecast } : {}) },
-    signal,
-  });
-}
 
 /** GET /api/mission-places on the Next.js origin: saved places for "Register a mission". */
 export function listMissionPlaces(): Promise<{ places: MissionPlaceOption[] }> {

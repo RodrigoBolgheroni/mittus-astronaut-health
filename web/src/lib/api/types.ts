@@ -51,27 +51,41 @@ export type CheckInAction = {
   reason_code: string;
   ruleset_version: string;
   forecast_snapshot: unknown;
-  /** Task title once the backend persists the Ceres tasks (not returned yet). */
-  title?: string | null;
-  /** Includes backend-managed values such as "pending" and "superseded". */
+  task_key: string;
+  title: string;
+  source: "forecast" | "check_in" | "system";
+  kind: "task" | "review_insight";
+  /** Includes backend-managed "suggested" and "superseded". */
   status: string;
   created_at: string;
   acknowledged_at: string | null;
   resolved_at: string | null;
 };
 
+export type CheckInInsight = {
+  id: string;
+  check_in_id: string;
+  evaluation_key: string;
+  title: string;
+  summary: string;
+  next_step: string;
+  facts: unknown;
+  source: "ai" | "fallback";
+  generator: string | null;
+  created_at: string;
+  superseded_at: string | null;
+};
+
 export type EvaluateActionsResult = {
   status: "ready" | "insufficient_history" | "unavailable";
-  action: CheckInAction | null;
-  explanation: string;
+  forecast: ForecastResult;
+  insight: CheckInInsight;
+  actions: CheckInAction[];
 };
 
 export type ListCheckInActions = { actions: CheckInAction[] };
 
-/**
- * Backend forecast result. NOT exposed over HTTP today (it is only embedded in
- * `CheckInAction.forecast_snapshot`); kept for typing that snapshot.
- */
+/** Canonical forecast is returned independently from the generated recommendation. */
 export type ForecastResult =
   | {
       status: "ready";
@@ -141,37 +155,6 @@ export type MissionContext = {
   missionReference: { label: string; url: string } | null;
 };
 
-/** Forecast as the Ceres contract expects it (`ready` carries the Eres fields). */
-export type CeresForecast =
-  | { status: "ready"; probability_high_fatigue: number; model_version: string; predicted_at: string }
-  | { status: "insufficient_history" }
-  | { status: "unavailable" };
-
-export type CeresTask = {
-  task_key: string;
-  title: string;
-  source: "check_in" | "forecast";
-  kind: string;
-  action_code: string;
-  reason_code: string;
-  ruleset_version: string;
-  status: string;
-  forecast_snapshot: unknown;
-};
-
-/** Response of the Next.js route POST /api/recommendations (Ceres `POST /v1/recommendations`). */
-export type CeresRecommendation = {
-  insight: {
-    title: string;
-    summary: string;
-    next_step: string;
-    facts: unknown;
-    /** "ai" = written by the language model; "fallback" = Ceres' deterministic text. */
-    source: "ai" | "fallback";
-    generator: string | null;
-  };
-  tasks: CeresTask[];
-};
 
 /** Saved place of GET /api/mission-places (table mission_places). */
 export type MissionPlaceOption = { code: string; name: string; label: string; kind: "tracked" | "fixed" };
@@ -184,7 +167,6 @@ export type MissionRegistrationInput = {
   ll2LaunchId: string;
   referenceLabel: string;
   referenceUrl: string;
-  isDemo: boolean;
   legs: Record<
     MissionPhase,
     {

@@ -98,7 +98,7 @@ function parseArgs(argv) {
     else if (k === '--help' || k === '-h') { console.log(fs.readFileSync(new URL(import.meta.url)).toString().split('*/')[0]); process.exit(0); }
     else die(`unknown option ${k}`);
   }
-  a.endDate ??= localDate(-1);
+  a.endDate ??= utcDate(-1);
   return a;
 }
 function int(v, name, min, max) {
@@ -119,9 +119,10 @@ function mulberry32(seed) {
 }
 const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 const roundTo = (v, step) => Math.round(v / step) * step;
-function localDate(offsetDays = 0) {
-  const d = new Date(); d.setDate(d.getDate() + offsetDays);
-  return d.toLocaleDateString('en-CA'); // YYYY-MM-DD in local time
+function utcDate(offsetDays = 0) {
+  const d = new Date();
+  d.setUTCDate(d.getUTCDate() + offsetDays);
+  return d.toISOString().slice(0, 10);
 }
 function addDays(isoDate, n) {
   const d = new Date(`${isoDate}T00:00:00Z`); d.setUTCDate(d.getUTCDate() + n);
@@ -202,15 +203,11 @@ function forecast(history) {
 }
 
 function evaluate(row, prob) {
-  const actions = [];
-  if (row.fatigue >= 6 || prob >= 0.85) actions.push(['contact_medical', 'severe_fatigue_or_high_risk']);
-  if (row.team_conflict_level >= 4) actions.push(['contact_crew', 'team_conflict_high']);
-  if (!actions.some(([a]) => a === 'contact_medical') && (row.fatigue >= HIGH_FATIGUE || row.sleep_hours < 5.5 || prob >= 0.5)) {
+  if (row.fatigue >= HIGH_FATIGUE || row.sleep_hours < 5.5 || prob >= 0.5) {
     const reason = row.fatigue >= HIGH_FATIGUE ? 'high_fatigue_reported' : row.sleep_hours < 5.5 ? 'low_sleep' : 'elevated_fatigue_risk';
-    actions.push(['recheck', reason]);
+    return [['recheck', reason]];
   }
-  if (actions.length === 0) actions.push(['monitor', 'within_expected_range']);
-  return actions;
+  return [['monitor', 'within_expected_range']];
 }
 
 function buildActions(checkIns) {
@@ -230,9 +227,11 @@ function buildActions(checkIns) {
           acknowledged_at = new Date(created.getTime() + 3_600_000).toISOString();
           resolved_at = new Date(created.getTime() + 6 * 3_600_000).toISOString();
         }
+        const title = action_code === 'recheck' ? 'Record a new check-in' : 'Keep tracking your check-ins';
         out.push({
           session_id: row.session_id, check_in_date: row.check_in_date,
           evaluation_key: `${RULESET_VERSION}:${row.check_in_date}`,
+          task_key: action_code, title, source: 'forecast', kind: 'task',
           action_code, reason_code, ruleset_version: RULESET_VERSION,
           forecast_snapshot: { model_version: MODEL_VERSION, predicted_at: created.toISOString(), probability_high_fatigue: prob, high_fatigue_threshold: HIGH_FATIGUE, simulated: true },
           status, created_at: created.toISOString(), acknowledged_at, resolved_at,
@@ -254,12 +253,34 @@ function readDatabaseUrl(envPath) {
 }
 
 function connectionConfig(envPath) {
-  const url = readDatabaseUrl(envPath)?.trim().replace(/^["']|["']$/g, '');
-  if (!url) die('DATABASE_URL is not set (use --env path/to/.env or export DATABASE_URL)');
-  // Parse by hand so passwords with URL-special characters (@ # / % ...) work unencoded.
-  const m = url.match(/^postgres(?:ql)?:\/\/([^:]+):(.*)@([^@:/]+):(\d+)\/([^?]*)/);
-  if (!m) die('DATABASE_URL must look like postgresql://user:password@host:port/database');
-  return { user: decodeURIComponent(m[1]), password: m[2], host: m[3], port: Number(m[4]), database: m[5] || 'postgres', ssl: { rejectUnauthorized: false }, connectionTimeoutMillis: 15000 };
+  const raw = readDatabaseUrl(envPath)?.trim().replace(/^["']|["']$/g, '');
+  if (!raw) die('DATABASE_URL is not set (use --env path/to/.env or export DATABASE_URL)');
+  let url;
+  try {
+    url = new URL(raw);
+  } catch {
+    die('DATABASE_URL must be a valid PostgreSQL URL');
+  }
+  if (url.protocol !== 'postgres:' && url.protocol !== 'postgresql:') die('DATABASE_URL must use PostgreSQL');
+  const host = url.hostname.replace(/^\[|\]$/g, '').toLowerCase();
+  if (!host || !url.username || !url.pathname || url.pathname === '/') die('DATABASE_URL must include host, user, and database');
+  const local = host === 'localhost' || host === '127.0.0.1' || host === '::1';
+  const sslmode = url.searchParams.get('sslmode');
+  if (!local && (sslmode === 'disable' || sslmode === 'no-verify')) {
+    die('Remote PostgreSQL connections must verify the server TLS certificate');
+  }
+  const ssl = local && (!sslmode || sslmode === 'disable')
+    ? false
+    : { rejectUnauthorized: true, ...(process.env.PGSSLROOTCERT ? { ca: fs.readFileSync(process.env.PGSSLROOTCERT, 'utf8') } : {}) };
+  return {
+    user: decodeURIComponent(url.username),
+    password: decodeURIComponent(url.password),
+    host,
+    port: Number(url.port || 5432),
+    database: decodeURIComponent(url.pathname.slice(1)) || 'postgres',
+    ssl,
+    connectionTimeoutMillis: 15000,
+  };
 }
 
 async function deleteSeedRows(c) {
@@ -289,9 +310,9 @@ async function insertAll(c, checkIns, actions) {
     const col = (k) => chunk.map((r) => r[k]);
     await c.query(
       `insert into public.check_in_actions
-         (check_in_id, evaluation_key, action_code, reason_code, ruleset_version, forecast_snapshot, status, created_at, acknowledged_at, resolved_at)
-       select * from unnest($1::uuid[], $2::text[], $3::text[], $4::text[], $5::text[], $6::jsonb[], $7::text[], $8::timestamptz[], $9::timestamptz[], $10::timestamptz[])`,
-      [chunk.map((a) => ids.get(`${a.session_id}|${a.check_in_date}`)), col('evaluation_key'), col('action_code'), col('reason_code'), col('ruleset_version'),
+         (check_in_id, evaluation_key, task_key, title, source, kind, action_code, reason_code, ruleset_version, forecast_snapshot, status, created_at, acknowledged_at, resolved_at)
+       select * from unnest($1::uuid[], $2::text[], $3::text[], $4::text[], $5::text[], $6::text[], $7::text[], $8::text[], $9::text[], $10::jsonb[], $11::text[], $12::timestamptz[], $13::timestamptz[], $14::timestamptz[])`,
+      [chunk.map((a) => ids.get(`${a.session_id}|${a.check_in_date}`)), col('evaluation_key'), col('task_key'), col('title'), col('source'), col('kind'), col('action_code'), col('reason_code'), col('ruleset_version'),
         chunk.map((a) => JSON.stringify(a.forecast_snapshot)), col('status'), col('created_at'), col('acknowledged_at'), col('resolved_at')],
     );
   }

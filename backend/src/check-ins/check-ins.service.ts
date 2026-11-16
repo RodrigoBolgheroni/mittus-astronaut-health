@@ -55,11 +55,16 @@ export class CheckInsService {
           },
           _max: { createdAt: true, acknowledgedAt: true },
         });
+        const insights = await transaction.checkInInsight.aggregate({
+          where: { checkIn: { sessionId }, supersededAt: null },
+          _max: { createdAt: true },
+        });
         const resolvedAt = new Date(
           Math.max(
             this.clock.now().getTime(),
             timestamps._max.createdAt?.getTime() ?? 0,
             timestamps._max.acknowledgedAt?.getTime() ?? 0,
+            insights._max.createdAt?.getTime() ?? 0,
           ),
         );
         await transaction.checkInAction.updateMany({
@@ -68,6 +73,10 @@ export class CheckInsService {
             status: { in: ['suggested', 'acknowledged'] },
           },
           data: { status: 'superseded', resolvedAt },
+        });
+        await transaction.checkInInsight.updateMany({
+          where: { checkIn: { sessionId }, supersededAt: null },
+          data: { supersededAt: resolvedAt },
         });
       }
       return saved;
