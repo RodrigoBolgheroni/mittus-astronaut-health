@@ -5,9 +5,8 @@ import { ButtonLink } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Metric } from "@/components/ui/Metric";
 import { BodyHotspot } from "@/features/history/BodyHotspot";
-import { currentAction, latestCheckIn } from "@/features/plan/plan-model";
+import { latestCheckIn } from "@/features/plan/plan-model";
 import { useCheckInActions, useCheckIns } from "@/lib/api";
-import { taskTitleFor } from "@/lib/ceres/recommendation-cache";
 import { homeChecklist, homeMetrics } from "./home-model";
 
 const LOADING = { value: "…", detail: "Loading" };
@@ -26,12 +25,7 @@ export function HomeScreen() {
   const metrics = loading ? { sleep: LOADING, fatigue: LOADING } : homeMetrics(latest, today, failed);
 
   const checkedToday = Boolean(latest && latest.check_in_date === today);
-  const action = currentAction(actions.data ?? []);
-  const checklist = homeChecklist(
-    checkedToday,
-    action,
-    action ? taskTitleFor(action.check_in_id, action.action_code) : null,
-  );
+  const checklist = homeChecklist(checkedToday, actions.data ?? []);
   const checklistLoading = loading || (Boolean(latest) && actions.loading && !actions.data);
 
   return (
