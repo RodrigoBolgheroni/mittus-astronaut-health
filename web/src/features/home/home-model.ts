@@ -5,7 +5,7 @@
  */
 import type { CheckIn, CheckInAction } from "../../lib/api/types.ts";
 import { FATIGUE_MAX, formatLongDate, formatNumber } from "../history/history-data.ts";
-import { planStatus, taskTitle } from "../plan/plan-model.ts";
+import { planStatus } from "../plan/plan-model.ts";
 
 export type HomeMetric = { value: string; detail: string };
 
@@ -28,20 +28,30 @@ export function homeMetrics(latest: CheckIn | null, today: string | null, failed
 
 export type HomeChecklist = { done: number; total: number; next: string | null };
 
+/** Fallback row while the latest check-in has no persisted actions yet (the Plan screen evaluates it). */
+const REVIEW_INSIGHT = "Review your check-in insight";
+
 /**
- * Same rows as the Plan card: "Save today's check-in", "Review the check-in
- * insight" (not tracked, so it stays open) and the current suggested task, if
- * any. A dismissed task is closed: it is neither complete nor the next task.
+ * Same rows as the Plan card: "Save today's check-in" plus the persisted
+ * actions of the latest check-in (titles come from the backend). Superseded
+ * actions belong to an older evaluation and are skipped. A dismissed task is
+ * closed: it is neither complete nor the next task.
  */
-export function homeChecklist(checkedToday: boolean, action: CheckInAction | null, actionTitle?: string | null): HomeChecklist {
-  const status = action ? planStatus(action.status) : null;
+export function homeChecklist(checkedToday: boolean, actions: readonly CheckInAction[]): HomeChecklist {
   const rows: { task: string; done: boolean; closed: boolean }[] = [
     { task: "Save today’s check-in", done: checkedToday, closed: checkedToday },
-    { task: "Review your check-in insight", done: false, closed: false },
   ];
-  if (action && status && status !== "superseded") {
+  const current = actions.filter((a) => {
+    const status = planStatus(a.status);
+    return status !== null && status !== "superseded";
+  });
+  if (current.length === 0) {
+    rows.push({ task: REVIEW_INSIGHT, done: false, closed: false });
+  }
+  for (const a of current) {
+    const status = planStatus(a.status);
     rows.push({
-      task: actionTitle || action.title || taskTitle(action.action_code),
+      task: a.title,
       done: status === "completed",
       closed: status === "completed" || status === "dismissed",
     });

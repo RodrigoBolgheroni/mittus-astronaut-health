@@ -18,14 +18,18 @@ const checkIn = (over: Partial<CheckIn> = {}): CheckIn => ({
   ...over,
 });
 
-const action = (status: string, over: Partial<CheckInAction> = {}): CheckInAction => ({
-  id: "a1",
+const action = (id: string, status: string, title: string, over: Partial<CheckInAction> = {}): CheckInAction => ({
+  id,
   check_in_id: "c1",
   evaluation_key: "k",
   action_code: "monitor",
   reason_code: "r",
   ruleset_version: "v",
   forecast_snapshot: null,
+  task_key: id,
+  title,
+  source: "check_in",
+  kind: "task",
   status,
   created_at: "2026-11-15T10:00:00.000Z",
   acknowledged_at: null,
@@ -50,18 +54,21 @@ describe("homeMetrics", () => {
 
 describe("homeChecklist", () => {
   it("starts with the check-in as next task", () => {
-    assert.deepEqual(homeChecklist(false, null), { done: 0, total: 2, next: "Save today’s check-in" });
+    assert.deepEqual(homeChecklist(false, []), { done: 0, total: 2, next: "Save today’s check-in" });
   });
-  it("counts the saved check-in and the suggested task", () => {
-    assert.deepEqual(homeChecklist(true, action("suggested")), {
+  it("lists the persisted actions with their backend titles", () => {
+    const actions = [
+      action("a1", "completed", "Review your check-in insight", { kind: "review_insight", source: "system" }),
+      action("a2", "suggested", "Record your sleep and fatigue again"),
+    ];
+    assert.deepEqual(homeChecklist(true, actions), { done: 2, total: 3, next: "Record your sleep and fatigue again" });
+  });
+  it("skips superseded actions and does not count dismissed ones as complete", () => {
+    assert.deepEqual(homeChecklist(true, [action("old", "superseded", "Old task")]), {
       done: 1,
-      total: 3,
+      total: 2,
       next: "Review your check-in insight",
     });
-    assert.equal(homeChecklist(true, action("completed")).done, 2);
-  });
-  it("ignores superseded tasks and does not count dismissed ones as complete", () => {
-    assert.equal(homeChecklist(true, action("superseded")).total, 2);
-    assert.deepEqual(homeChecklist(true, action("dismissed")), { done: 1, total: 3, next: "Review your check-in insight" });
+    assert.deepEqual(homeChecklist(true, [action("a", "dismissed", "Task")]), { done: 1, total: 2, next: null });
   });
 });
