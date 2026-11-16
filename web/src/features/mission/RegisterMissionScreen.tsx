@@ -5,7 +5,6 @@ import { useEffect, useId, useState, type FormEvent, type ReactNode } from "reac
 
 import { Button, ButtonLink } from "@/components/ui/Button";
 import { Dialog } from "@/components/ui/Dialog";
-import { Icon } from "@/components/ui/Icon";
 import { isApiError, listMissionPlaces, registerMission } from "@/lib/api";
 import type { MissionPhase, MissionPlaceOption, MissionRegistrationInput } from "@/lib/api/types";
 import { DEPARTURE_TIME_SOURCES, DEPARTURE_TIME_SOURCE_LABEL } from "@/lib/mission/mission-registration";
@@ -26,7 +25,6 @@ const EMPTY: MissionRegistrationInput = {
   ll2LaunchId: "",
   referenceLabel: "",
   referenceUrl: "",
-  isDemo: false,
   legs: { in_orbit: EMPTY_LEG, return_to_earth: EMPTY_LEG },
 };
 
@@ -84,7 +82,7 @@ export function RegisterMissionScreen() {
             ? messages[0]!
             : `${messages[0]} ${messages.length - 1} more field${messages.length > 2 ? "s" : ""} highlighted.`
           : body?.error === "session_required"
-            ? "Save a daily check-in first, or use it as the demo mission."
+            ? "Save a daily check-in first to start your session."
             : "The mission could not be saved. Try again.",
       );
     } finally {
@@ -116,16 +114,6 @@ export function RegisterMissionScreen() {
               <TextField label="Reference label" placeholder="Optional" value={form.referenceLabel} onChange={(v) => set("referenceLabel", v)} />
               <TextField label="Reference URL" placeholder="https://" type="url" value={form.referenceUrl} onChange={(v) => set("referenceUrl", v)} error={errors.referenceUrl} />
             </div>
-            <label className="relative flex h-[26px] w-fit cursor-pointer items-center gap-2 text-body leading-[1.17] text-ivory">
-              <input
-                type="checkbox"
-                checked={form.isDemo}
-                onChange={(e) => set("isDemo", e.target.checked)}
-                className="peer absolute inset-0 cursor-pointer opacity-0"
-              />
-              <Icon name={form.isDemo ? "square-check-18" : "square-18"} className="rounded-[3px] peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-cyan" />
-              Use as the demo mission
-            </label>
           </section>
         </MissionSlot>
 

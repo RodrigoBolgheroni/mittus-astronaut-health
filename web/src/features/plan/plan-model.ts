@@ -47,31 +47,12 @@ export function conflictMessage(code: string | undefined): string {
     case "CHECK_IN_NOT_LATEST":
       return "A newer check-in exists. Showing its task.";
     case "EVALUATION_OUTDATED":
-      return "Your check-ins changed. Showing the current task.";
+      return "Your check-ins changed. Reload the plan to get the current tasks.";
     default:
       return "The task changed. Showing the current task.";
   }
 }
 
-/** Plan-card task name. "Keep tracking..." is Figma (monitor); recheck is inferred from the history label (PENDING). */
-export function taskTitle(actionCode: string): string {
-  if (actionCode === "monitor") return "Keep tracking your daily check-ins";
-  if (actionCode === "recheck") return "Record a new check-in";
-  return "Suggested task";
-}
-
-/** History-log title (Figma 32:498 labels, mapped by action code: PENDING inference). */
-export function historyTitle(actionCode: string): string {
-  if (actionCode === "monitor") return "Track daily check-ins";
-  if (actionCode === "recheck") return "Record a new check-in";
-  return "Suggested task";
-}
-
-/** Newest first (the API order). The vigent action is the newest one unless it was replaced. */
-export function currentAction(actions: readonly CheckInAction[]): CheckInAction | null {
-  const first = actions[0];
-  return first && first.status !== "superseded" ? first : null;
-}
 
 export function latestCheckIn(items: readonly CheckIn[]): CheckIn | null {
   return items.reduce<CheckIn | null>((a, c) => (!a || c.check_in_date > a.check_in_date ? c : a), null);

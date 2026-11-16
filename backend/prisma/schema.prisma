@@ -26,6 +26,7 @@ model CheckIn {
   teamConflictOption TeamConflictLevelOption @relation(fields: [teamConflictLevel], references: [value], onDelete: NoAction, onUpdate: NoAction, map: "check_ins_team_conflict_level_fk")
   fatigueOption      FatigueOption           @relation(fields: [fatigue], references: [value], onDelete: NoAction, onUpdate: NoAction, map: "check_ins_fatigue_fk")
   actions            CheckInAction[]
+  insights           CheckInInsight[]
 
   @@unique([sessionId, checkInDate], map: "check_ins_session_date_unique")
   @@map("check_ins")
@@ -67,10 +68,14 @@ model CheckInAction {
   id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   checkInId        String    @map("check_in_id") @db.Uuid
   evaluationKey    String    @map("evaluation_key") @db.Text
+  taskKey          String    @map("task_key") @db.Text
+  title            String    @db.Text
+  source           String    @db.Text
+  kind             String    @default("task") @db.Text
   actionCode       String    @map("action_code") @db.Text
   reasonCode       String    @map("reason_code") @db.Text
   rulesetVersion   String    @map("ruleset_version") @db.Text
-  forecastSnapshot Json      @map("forecast_snapshot") @db.JsonB
+  forecastSnapshot Json?     @map("forecast_snapshot") @db.JsonB
   status           String    @default("suggested") @db.Text
   createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   acknowledgedAt   DateTime? @map("acknowledged_at") @db.Timestamptz(6)
@@ -78,9 +83,30 @@ model CheckInAction {
 
   checkIn CheckIn @relation(fields: [checkInId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "check_in_actions_check_in_id_fkey")
 
-  @@unique([checkInId, evaluationKey, actionCode], map: "check_in_actions_evaluation_action_key")
+  @@unique([checkInId, evaluationKey, taskKey], map: "check_in_actions_evaluation_task_key")
   @@index([checkInId, createdAt(sort: Desc)], map: "check_in_actions_check_in_created_idx")
   @@map("check_in_actions")
+}
+
+model CheckInInsight {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  checkInId     String    @map("check_in_id") @db.Uuid
+  evaluationKey String    @map("evaluation_key") @db.Text
+  title         String    @db.Text
+  summary       String    @db.Text
+  nextStep      String    @map("next_step") @db.Text
+  facts         Json      @db.JsonB
+  source        String    @db.Text
+  generator     String?   @db.Text
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  supersededAt  DateTime? @map("superseded_at") @db.Timestamptz(6)
+
+  checkIn CheckIn @relation(fields: [checkInId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "check_in_insights_check_in_id_fkey")
+
+  @@unique([checkInId, evaluationKey], map: "check_in_insights_evaluation_key")
+  @@index([checkInId, createdAt(sort: Desc)], map: "check_in_insights_check_in_created_idx")
+  // The partial unique check_in_insights_current_idx remains SQL-only.
+  @@map("check_in_insights")
 }
 
 model MissionPlace {

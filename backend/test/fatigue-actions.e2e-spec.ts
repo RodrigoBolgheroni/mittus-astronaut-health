@@ -7,12 +7,19 @@ import request from 'supertest';
 import { AppModule } from '../src/app.module.js';
 import { Clock } from '../src/common/clock.js';
 import { PrismaService } from '../src/prisma/prisma.service.js';
+import type { EvaluateCheckInActionsOutput } from '../src/check-in-actions/dto/check-in-action.output.js';
 import { setupApp } from '../src/setup.js';
 import { testDatabaseUrl } from './database/prepare.js';
 
 const today = new Date('2030-11-14T00:00:00.000Z');
 const dayMilliseconds = 86_400_000;
 
+
+function forecastTask(plan: EvaluateCheckInActionsOutput) {
+  const task = plan.actions.find((action) => action.source === 'forecast');
+  if (!task) throw new Error('Expected the canonical forecast task.');
+  return task;
+}
 describe('Check-in actions with the bundled fatigue model', () => {
   let app: INestApplication;
   let prisma: PrismaService;
@@ -26,6 +33,7 @@ describe('Check-in actions with the bundled fatigue model', () => {
     );
     vi.stubEnv('WEB_ORIGIN', 'http://localhost:3000');
     vi.stubEnv('FATIGUE_FORECAST_URL', undefined);
+    vi.stubEnv('CERES_URL', undefined);
     vi.stubEnv('NODE_ENV', 'test');
     const module = await Test.createTestingModule({ imports: [AppModule] })
       .overrideProvider(Clock)
@@ -94,13 +102,10 @@ describe('Check-in actions with the bundled fatigue model', () => {
       { sleep_hours: 7, fatigue: 3 },
     ]);
     const insufficient = await evaluate(cookie, checkIn.id).expect(200);
-    expect(insufficient.body).toMatchObject({
-      status: 'insufficient_history',
-      action: null,
-    });
-    expect(
-      await prisma.checkInAction.count({ where: { checkInId: checkIn.id } }),
-    ).toBe(0);
+    expect(insufficient.body.forecast).toEqual({ status: 'insufficient_history' });
+    expect(insufficient.body.actions).toEqual([
+      expect.objectContaining({ source: 'check_in', forecast_snapshot: null }),
+    ]);
     await prisma.checkIn.create({
       data: {
         sessionId: checkIn.sessionId,
@@ -115,25 +120,25 @@ describe('Check-in actions with the bundled fatigue model', () => {
     const predicted = await evaluate(cookie, checkIn.id).expect(200);
     expect(predicted.body.status).toBe('ready');
     expect(
-      predicted.body.action.forecast_snapshot.probability_high_fatigue,
+      predicted.body.forecast.probability_high_fatigue,
     ).toBeGreaterThanOrEqual(0);
     expect(
-      predicted.body.action.forecast_snapshot.probability_high_fatigue,
+      predicted.body.forecast.probability_high_fatigue,
     ).toBeLessThanOrEqual(1);
-    const actionId = predicted.body.action.id;
+    const actionId = forecastTask(predicted.body).id;
     await request(app.getHttpServer())
       .patch(`/api/check-in-actions/${actionId}`)
       .set('Cookie', cookie)
       .send({ status: 'completed' })
       .expect(200);
     const repeated = await evaluate(cookie, checkIn.id).expect(200);
-    expect(repeated.body.action).toMatchObject({
+    expect(forecastTask(repeated.body)).toMatchObject({
       id: actionId,
       status: 'completed',
     });
     expect(
       await prisma.checkInAction.count({ where: { checkInId: checkIn.id } }),
-    ).toBe(1);
+    ).toBe(3);
   });
 
   it('uses the complete session history rather than truncating model inputs at ninety records', async () => {
@@ -150,7 +155,7 @@ describe('Check-in actions with the bundled fatigue model', () => {
     const response = await evaluate(cookie, checkIn.id).expect(200);
     expect(response.body.status).toBe('ready');
     const probability =
-      response.body.action.forecast_snapshot.probability_high_fatigue;
+      response.body.forecast.probability_high_fatigue;
     expect(probability).toBeCloseTo(expected.probability_high_fatigue, 12);
     expect(probability).not.toBeCloseTo(truncated.probability_high_fatigue, 12);
   });
@@ -168,12 +173,12 @@ describe('Check-in actions with the bundled fatigue model', () => {
     );
     const highResponse = await evaluate(highCookie, high.id).expect(200);
     const lowResponse = await evaluate(lowCookie, low.id).expect(200);
-    expect(highResponse.body.action.action_code).toBe('recheck');
-    expect(lowResponse.body.action.action_code).toBe('monitor');
+    expect(forecastTask(highResponse.body).action_code).toBe('recheck');
+    expect(forecastTask(lowResponse.body).action_code).toBe('monitor');
     expect(
-      highResponse.body.action.forecast_snapshot.probability_high_fatigue,
+      highResponse.body.forecast.probability_high_fatigue,
     ).toBeGreaterThan(
-      lowResponse.body.action.forecast_snapshot.probability_high_fatigue,
+      lowResponse.body.forecast.probability_high_fatigue,
     );
     await evaluate(lowCookie, high.id).expect(404);
   });

@@ -21,6 +21,7 @@ Configure o `.env` usando [`.env.example`](.env.example) como referência, prese
 | `PORT`           | Porta da API; padrão `3001`.                                                                                                                                           |
 | `NODE_ENV`       | `production` habilita o atributo `Secure` do cookie; use HTTPS nesse ambiente.                                                                                         |
 | `FATIGUE_FORECAST_URL` | Optional trusted HTTP provider override. When unset, actions use the bundled synthetic fatigue model locally. |
+| `CERES_URL` | Optional server-only base URL for Ceres. Unset/unavailable uses the explicitly labeled persisted basic summary; never a fabricated prediction. |
 
 Para gerar um segredo local:
 
@@ -52,7 +53,7 @@ O build gera o client e copia o engine do Prisma para `dist`. Não é necessári
 | `GET`  | `/api/check-ins?limit=7`                       | Histórico recente, com data decrescente; limite entre 1 e 90.        |
 | `GET`  | `/api/check-ins?from=2026-11-01&to=2026-12-01` | Calendário com início inclusivo e fim exclusivo; máximo de 366 dias. |
 | `GET`  | `/api/check-in-options`                        | Valores e rótulos das quatro escalas, lidos do banco.                |
-| `POST` | `/api/check-ins/:checkInId/actions/evaluate` | Evaluates the latest check-in and persists an experimental action. |
+| `POST` | `/api/check-ins/:checkInId/actions/evaluate` | Generates or reuses the latest owned persisted insight and complete task checklist. |
 | `GET` | `/api/check-ins/:checkInId/actions` | Lists up to 90 actions, newest first, for an owned check-in. |
 | `PATCH` | `/api/check-in-actions/:actionId` | Acknowledges, completes or dismisses an owned pending action. |
 
@@ -81,11 +82,11 @@ Verificações de existência usam consultas ao banco e avaliam o resultado. Nã
 
 ## Check-in actions
 
-The existing NestJS backend, signed session cookie, validation pipe, Prisma model and SQL migration are reused. No additional table or production migration is needed. Browser requests must send credentials; the existing Origin check also protects both new write routes. A missing or foreign UUID returns `404`; malformed UUIDs, unknown update fields and invalid statuses return `400`.
+The NestJS backend owns canonical history, generation, persistence and task states. Browsers supply only the check-in ID and send credentials. The existing Origin check protects write routes. Missing or foreign IDs return `404`; invalid UUIDs, nonempty evaluation bodies and invalid status updates return `400`.
 
 ### Forecast integration
 
-Actions use the shared `@mittus/fatigue-model` package in `ml/` by default. This is the trained synthetic Eres v2 model from main, not a fabricated fallback. It requires at least three check-ins and receives the complete session history in chronological order. Its native `ok` result is adapted to the existing action response status `ready`; insufficient history creates no action.
+Eres uses the shared `@mittus/fatigue-model` package by default with the complete chronological session history. Its native `ok` becomes `ready`. Fewer than three records produce `insufficient_history`: no probability or forecast-sourced task is invented, but a recorded-value summary and check-in-based review task remain available.
 
 Both runtime packages depend on `file:../ml`. Include that folder when installing from a monorepo checkout; the installed model package contains JavaScript, type declarations and the weight artifact, so the compiled backend does not import TypeScript from the web source tree. `ml/train.py` exports to `ml/fatigue-model.json`. Inference, weights and training output have a single owner; there is no compatibility copy under `web/src/lib`.
 
@@ -106,23 +107,23 @@ The provider must return HTTP 200 with one of these JSON responses:
 { "status": "insufficient_history" }
 ```
 
-The HTTP probability must be finite and between 0 and 1; its model version must be nonempty and at most 128 characters; its prediction time must be a valid UTC ISO instant ending in `Z`. HTTP failures, malformed output or a five-second timeout produce `unavailable`. No action is inserted for unavailable or insufficient-history evaluations, and pending actions for that check-in become `superseded`. Existing snapshots and completed/dismissed history are retained.
+HTTP forecast output must contain a finite probability between 0 and 1, a nonempty model version (maximum 128 characters), and a valid UTC ISO prediction instant ending in `Z`. HTTP failure, malformed output or a five-second timeout produces `unavailable`. Older pending tasks and the current insight are superseded when the accepted evaluation changes; completed/dismissed history and original snapshots remain intact.
 
 ### Evaluation and state
 
-Call `POST /api/check-ins/{id}/actions/evaluate` with no body or `{}` after saving a check-in. Only the session's latest check-in is evaluable (`409 CHECK_IN_NOT_LATEST` otherwise). A successful evaluation returns `{ "status": "ready", "action": { ... }, "explanation": "..." }`; other outcomes return `status`, `action: null` and an English explanation.
+Call `POST /api/check-ins/{id}/actions/evaluate` with no body or `{}`. Only the latest owned check-in is evaluable (`409 CHECK_IN_NOT_LATEST` otherwise). The response is `{ status, forecast, insight, actions }`: `status` describes forecast availability; `insight` is the persisted recommendation and `actions` contains every task in that evaluation, including its saved progress. There is no singular `action` compatibility field.
 
-The synthetic-data policy `demo-follow-up-v1` selects `recheck` for probability >= 0.5 and `monitor` below 0.5. This is a demonstration display threshold, not a validated medical threshold. `contact_crew` and `contact_medical` remain reserved; no messages or diagnoses are generated. Explanations currently use versioned English text; language-model generation is not part of these routes.
+The server calls the separately deployed Ceres service through optional server-only `CERES_URL`, posting only canonical numeric check-in fields and the Eres result to `/v1/recommendations`. Descriptions, cookies and session IDs are never sent. Output is validated against task keys, enums, generator provenance and forecast availability; provider-supplied statuses/snapshots are ignored. Calls have a 60-second timeout, no redirects and no automatic retries. Missing, invalid or unavailable Ceres produces a persisted deterministic `source: fallback` summary and review task, plus the existing `demo-follow-up-v1` monitor/recheck task only when Eres is ready. This is not medical advice.
 
 The training script's evaluation threshold is for its synthetic classification report; it does not change the versioned action display threshold above.
 
-The evaluation key fingerprints model inputs, model/rule versions and probability. Prediction timestamps do not cause duplicate actions. Repeating the current evaluation preserves its ID, snapshot and user progress. After supersession, recovery creates a new historical entry instead of reviving the old action.
+The evaluation identity covers canonical history, forecast status/model/probability, generation policy and configured provider. Prediction timestamps alone never change it. Repeated evaluation reuses insight/task IDs and progress without calling Ceres again; overlapping in-process requests are coalesced. SQL session locks and unique keys prevent duplicate persistence across instances. A superseded evaluation is never revived. Persisted fallback is also reused; reloading is not a promise of another paid generation.
 
-Session-scoped PostgreSQL transaction advisory locks coordinate check-in writes, evaluations and status changes. Inference runs outside the transaction; the backend rechecks the input fingerprint before persistence (`409 EVALUATION_OUTDATED` if the history changed). Indicator corrections immediately supersede pending actions. Description-only edits and identical saves do not invalidate an action. Creating a new day's check-in also invalidates previous pending actions; the frontend must request a new evaluation.
+Network calls run outside SQL transactions. Before publishing, the server locks the session and rechecks the complete history fingerprint (`409 EVALUATION_OUTDATED` if changed). The insight and all tasks are saved in one transaction. Numeric corrections and new-day entries immediately supersede current insights and pending tasks across the session. Description-only and identical saves preserve the existing evaluation.
 
 Send `{ "status": "acknowledged" }`, `{ "status": "completed" }` or `{ "status": "dismissed" }` to the PATCH route. Suggested actions may be acknowledged or resolved directly; acknowledged actions may be completed/dismissed. Repeating the current status is idempotent. Other changes to completed, dismissed or superseded actions return `409 ACTION_NOT_PENDING`. Timestamps are set by the server and remain monotonic; clients cannot choose them.
 
-GET returns `{ "actions": [...] }`, including historical statuses, ordered by creation time descending. Each action exposes `id`, `check_in_id`, `evaluation_key`, `action_code`, `reason_code`, `ruleset_version`, `forecast_snapshot`, `status`, `created_at`, `acknowledged_at` and `resolved_at`; it never exposes the session ID.
+GET returns `{ actions: [...] }`, including historical statuses, newest first (up to 90). Each task exposes its ID, check-in/evaluation IDs, `task_key`, `title`, `source`, `kind`, action/reason/ruleset codes, nullable canonical forecast snapshot, status and timestamps. The insight includes its ID, title, summary, `next_step`, facts, source/generator and supersession timestamps. Session IDs are never exposed.
 
 ## Integração com o frontend
 
@@ -197,11 +198,15 @@ The authoritative SQL history is [`supabase/migrations`](../supabase/migrations)
 | `20261114000000_baseline_check_ins.sql` | Recovered baseline for the previously untracked check-in and option tables, including `description`, constraints, foreign keys, labels, grants and RLS. |
 | `20261114192439_create_check_in_actions.sql` | Existing action table and integrity rules; unchanged. |
 | `20261114220000_create_missions.sql` | Original SQL recovered from Supabase migration history, including mission tables, indices, access rules and demo seed data. |
+| `20261116000000_persist_check_in_plans.sql` | Reconstructs the observed task metadata, per-task uniqueness, nullable snapshots and insights table while preserving existing action content/statuses. |
+| `20261116010000_persist_insight_next_step.sql` | Adds the missing required `next_step` field. Refuses a populated pre-column insights table rather than inventing generated content. |
 
-The incomplete `backend/migrations/001` and `002` scripts have been retired; do not maintain a second migration sequence there. Prisma maps all ten public tables, including `Mission`, `MissionPlace`, `MissionLeg` and `SessionMission`. The partial unique `missions_single_demo_idx` remains SQL-only: it permits multiple ordinary missions but at most one demo. Do not replace it with a full-column Prisma `@unique`.
+Prisma maps all eleven public tables, including `CheckInInsight` and the four mission models. Partial unique current-insight and single-demo indices remain SQL-only. Do not replace them with full-column Prisma unique constraints.
 
 The Next.js `GET /api/mission-context` route now reads the registered mission using its existing `pg` reader. It shares `DATABASE_URL`, `SESSION_SECRET` and the host-visible `mittus_session` cookie with this backend; proxy both API surfaces through the same hostname in production. This backend continues to own check-ins/actions and cookie issuance, without a duplicate mission route or a mandatory mission link on check-ins. Option-table grants match the inspected database; RLS without public policies still filters those tables for public API roles. Health and mission tables remain server-only.
 
 **Existing Supabase project:** both recovered migration outputs already exist there. The recovered baseline version is not an entry in the remote migration history, and must not be blindly applied or automatically marked as applied. No remote history repair, schema write or seed replay is performed by this synchronization. Reconcile that baseline explicitly before any future Supabase CLI deployment; starting the API requires no such operation.
+
+**Persisted-plan rollout:** the remote task/insight evolution was observed without a corresponding new migration-history entry. The first new migration reconstructs that evolution for fresh replay; do not run it blindly against already-existing remote objects. Reconcile history deliberately, then apply the separate next-step migration before deploying this backend. No remote migration/history update was performed in this implementation. Back up existing records and stop incompatible writers during the coordinated cutover.
 
 **Fresh local database:** run the existing `test:e2e` command against an empty, isolated `mittus_test` database with an administrative local test user. The setup creates only missing local test roles and verifies the real SQL history through API and schema tests. It never resets a populated database or targets Supabase.

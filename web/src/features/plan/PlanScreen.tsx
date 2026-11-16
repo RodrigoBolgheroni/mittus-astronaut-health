@@ -6,7 +6,6 @@ import { AppShell, Slot } from "@/components/shell/AppShell";
 import { Button, ButtonLink } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { isApiError, useCheckInActions, useCheckIns, type CheckInActionStatus } from "@/lib/api";
-import { taskTitleFor } from "@/lib/ceres/recommendation-cache";
 import { ChecklistRow } from "./ChecklistRow";
 import {
   CONTROLS,
@@ -14,16 +13,14 @@ import {
   ROW_STATUS,
   SUBTITLE,
   conflictMessage,
-  currentAction,
   latestCheckIn,
   planStatus,
-  taskTitle,
 } from "./plan-model";
 
 type Phase = "idle" | "running" | "done" | "error";
 
 const TITLE = "Your daily checklist.";
-const CARD = "flex flex-col gap-3.5 p-pad canvas:min-h-[452px]";
+const CARD = "flex flex-col gap-3.5 p-pad canvas:min-h-[452px] canvas:max-h-[540px] canvas:overflow-y-auto";
 const H2 = "font-display text-[32px] leading-[1.17] text-ivory";
 
 /** Figma 10-13 "My plan" (30:371, 32:291, 32:334, 32:375) wired to the check-in actions API. */
@@ -31,7 +28,7 @@ export function PlanScreen() {
   const checkIns = useCheckIns(1);
   const latest = checkIns.data ? latestCheckIn(checkIns.data.items) : null;
   const actions = useCheckInActions(latest?.id);
-  const { evaluate, refetch: refetchActions, update, updating, evaluation } = actions;
+  const { evaluate, update, updating, evaluation } = actions;
   const { refetch: refetchCheckIns } = checkIns;
 
   const [phase, setPhase] = useState<Phase>("idle");
@@ -49,10 +46,9 @@ export function PlanScreen() {
       setPhase("done");
     } catch (e) {
       if (isApiError(e) && e.isConflict) {
-        // The hook already refetched the list: the card shows the vigent action.
         announce(conflictMessage(e.code));
         if (e.code === "CHECK_IN_NOT_LATEST") void refetchCheckIns();
-        setPhase("done");
+        setPhase("error");
       } else {
         setPhase("error");
       }
@@ -60,11 +56,12 @@ export function PlanScreen() {
   }, [evaluate, announce, refetchCheckIns]);
 
   const latestId = latest?.id;
+  const latestKey = latest ? `${latest.id}:${latest.updated_at}` : null;
   useEffect(() => {
-    if (!latestId || evaluatedFor.current === latestId) return;
-    evaluatedFor.current = latestId;
+    if (!latestKey || evaluatedFor.current === latestKey) return;
+    evaluatedFor.current = latestKey;
     void run();
-  }, [latestId, run]);
+  }, [latestKey, run]);
 
   // Move focus to the result: the pressed button may disappear with the state change.
   useEffect(() => {
@@ -72,14 +69,8 @@ export function PlanScreen() {
   }, [notice]);
 
   const retry = () => {
-    evaluatedFor.current = null;
-    setPhase("idle");
     void refetchCheckIns();
-    void refetchActions();
-    if (latestId) {
-      evaluatedFor.current = latestId;
-      void run();
-    }
+    void run();
   };
 
   const act = async (id: string, status: CheckInActionStatus) => {
@@ -88,19 +79,20 @@ export function PlanScreen() {
       announce(SUBTITLE[status]);
     } catch (e) {
       announce(isApiError(e) && e.isConflict ? conflictMessage(e.code) : COPY.updateFailed);
+      if (isApiError(e) && e.isConflict) void run();
     }
   };
 
   // ---- state ----
   const initialLoading = checkIns.loading && !checkIns.data;
   const failed = (checkIns.error && !checkIns.data) || phase === "error" || (actions.error && !actions.data);
-  const loading = !failed && (initialLoading || (latest && (phase === "idle" || phase === "running") && !actions.data));
+  const loading = !failed && (initialLoading || (latest && (phase === "idle" || phase === "running")));
   const empty = !failed && !loading && !latest;
-  const current = !failed && !loading && !empty ? currentAction(actions.data ?? []) : null;
-  const status = current ? planStatus(current.status) : null;
-  const shown = status && status !== "superseded" ? status : null;
-  const explanation = current && evaluation?.action?.id === current.id ? evaluation.explanation : null;
-  const noAction = !failed && !loading && !empty && !current ? (evaluation?.explanation ?? null) : null;
+  const evaluationKey = evaluation && evaluation.insight.check_in_id === latestId ? evaluation.insight.evaluation_key : null;
+  const current = !failed && !loading && !empty
+    ? (actions.data ?? []).filter((a) => a.evaluation_key === evaluationKey && a.status !== "superseded")
+    : [];
+  const shown = current.length ? (current.some((a) => a.status === "suggested" || a.status === "acknowledged") ? "suggested" : "completed") : null;
 
   const subtitle = failed
     ? COPY.errorSubtitle
@@ -154,15 +146,34 @@ export function PlanScreen() {
                 task="Save today’s check-in"
                 status={checkedToday ? "Completed" : ""}
               />
-              <ChecklistRow task="Review the check-in insight" status="Open insight ↗" href="/insights" />
-              {current && status ? (
-                <ChecklistRow
-                  id="plan-task"
-                  complete={status === "completed"}
-                  task={current.title || taskTitleFor(current.check_in_id, current.action_code) || taskTitle(current.action_code)}
-                  status={ROW_STATUS[status]}
-                />
-              ) : null}
+              {current.map((task) => {
+                const status = planStatus(task.status);
+                if (!status) return null;
+                return (
+                  <ChecklistRow
+                    key={task.id}
+                    id={`plan-task-${task.id}`}
+                    complete={status === "completed"}
+                    task={task.title}
+                    status={ROW_STATUS[status]}
+                  >
+                    <div className="mt-2 flex flex-wrap gap-3" role="group" aria-label={`Actions for ${task.title}`}>
+                      {task.kind === "review_insight" ? <ButtonLink variant="secondary" href="/insights">Open insight</ButtonLink> : null}
+                      {(status === "suggested" || status === "acknowledged") ? CONTROLS[status].map((c) => (
+                        <Button
+                          key={c.status}
+                          variant={c.variant}
+                          disabled={updating}
+                          aria-describedby={`plan-task-${task.id}`}
+                          onClick={() => void act(task.id, c.status)}
+                        >
+                          {c.label}
+                        </Button>
+                      )) : null}
+                    </div>
+                  </ChecklistRow>
+                );
+              })}
             </ul>
 
             <p
@@ -175,41 +186,7 @@ export function PlanScreen() {
               {notice?.text ?? ""}
             </p>
 
-            {current && (status === "suggested" || status === "acknowledged") ? (
-              <div className="flex flex-wrap gap-3" role="group" aria-label="Task actions">
-                {CONTROLS[status].map((c) => (
-                  <Button
-                    key={c.status}
-                    variant={c.variant}
-                    disabled={updating}
-                    aria-describedby="plan-task"
-                    onClick={() => void act(current.id, c.status)}
-                    className={
-                      c.label === "Got it"
-                        ? "canvas:w-[180px]"
-                        : c.label === "Dismiss"
-                          ? "canvas:w-[140px]"
-                          : status === "suggested"
-                            ? "canvas:w-[186px]"
-                            : "canvas:w-[194px]"
-                    }
-                  >
-                    {c.label}
-                  </Button>
-                ))}
-              </div>
-            ) : current ? (
-              <div>
-                <ButtonLink href="/" className="canvas:w-[194px]">
-                  Back to home
-                </ButtonLink>
-              </div>
-            ) : null}
-
-            {/* Backend text (`explanation`); not in Figma, shown below the controls. */}
-            {explanation ?? noAction ? (
-              <p className="text-body leading-[1.17] text-muted">{explanation ?? noAction}</p>
-            ) : null}
+            {evaluationKey ? <p className="text-body leading-[1.17] text-muted">{evaluation?.insight.next_step}</p> : null}
           </Card>
         )}
       </Slot>

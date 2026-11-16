@@ -19,7 +19,6 @@ const valid = (overrides = {}) => ({
   ll2LaunchId: "",
   referenceLabel: "",
   referenceUrl: "https://",
-  isDemo: false,
   legs: { in_orbit: leg(), return_to_earth: leg({ departurePlace: "iss", destinationPlace: "pacific_splashdown_california" }) },
   ...overrides,
 });
@@ -32,6 +31,21 @@ describe("validateRegistration", () => {
     assert.equal(result.value.noradId, 25544);
     assert.equal(result.value.referenceUrl, null, "the https:// starting text counts as empty");
     assert.equal(result.value.legs.in_orbit.departureAt, null);
+    assert.equal("isDemo" in result.value, false);
+  });
+
+  it("rejects global-demo selection rather than exposing it in the normalized registration", () => {
+    const result = validateRegistration(valid({ isDemo: true }));
+    assert.equal(result.ok, false);
+    if (result.ok) return;
+    assert.deepEqual(result.errors, { isDemo: "Demo selection is not available through public registration." });
+  });
+
+  it("discards a legacy false demo flag without carrying it into persistence", () => {
+    const result = validateRegistration(valid({ isDemo: false }));
+    assert.equal(result.ok, true);
+    if (!result.ok) return;
+    assert.equal("isDemo" in result.value, false);
   });
 
   it("follows the database checks", () => {

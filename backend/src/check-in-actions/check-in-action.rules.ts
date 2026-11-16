@@ -2,7 +2,7 @@
 export const rulesetVersion = 'demo-follow-up-v1';
 const recheckProbability = 0.5;
 
-export function chooseAction(probability: number) {
+export function chooseAction(probability: number): { actionCode: 'monitor' | 'recheck'; reasonCode: string } {
   return probability >= recheckProbability
     ? {
         actionCode: 'recheck',

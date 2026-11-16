@@ -10,6 +10,7 @@ describe('Runtime configuration', () => {
     vi.stubEnv('WEB_ORIGIN', 'http://localhost:3000');
     vi.stubEnv('PORT', '3001');
     vi.stubEnv('FATIGUE_FORECAST_URL', undefined);
+    vi.stubEnv('CERES_URL', undefined);
   });
   afterEach(() => vi.unstubAllEnvs());
 
@@ -60,6 +61,34 @@ describe('Runtime configuration', () => {
     vi.stubEnv('FATIGUE_FORECAST_URL', url);
     expect(() => new RuntimeConfig()).toThrow(
       'FATIGUE_FORECAST_URL must be an HTTP URL without credentials or a fragment.',
+    );
+  });
+
+  it('leaves the optional recommendation provider unconfigured by default', () => {
+    expect(new RuntimeConfig().ceresUrl).toBeUndefined();
+  });
+
+  it.each([
+    ['http://localhost:8081', 'http://localhost:8081'],
+    ['https://ceres.example/', 'https://ceres.example'],
+    ['https://ceres.example/api///', 'https://ceres.example/api'],
+    ['https://ceres.example/api/?v=1', 'https://ceres.example/api?v=1'],
+  ])('normalizes the Ceres base URL: %s', (url, expected) => {
+    vi.stubEnv('CERES_URL', url);
+    expect(new RuntimeConfig().ceresUrl).toBe(expected);
+  });
+
+  it.each([
+    '',
+    'not-a-url',
+    'ftp://ceres.example',
+    'https://user:secret@ceres.example',
+    'https://ceres.example#secret',
+    'https://ceres.example#',
+  ])('rejects an invalid Ceres URL without exposing it: %s', (url) => {
+    vi.stubEnv('CERES_URL', url);
+    expect(() => new RuntimeConfig()).toThrow(
+      'CERES_URL must be an HTTP URL without credentials or a fragment.',
     );
   });
 

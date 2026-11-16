@@ -21,6 +21,7 @@ export class RuntimeConfig {
   readonly production: boolean;
   readonly port: number;
   readonly fatigueForecastUrl: string | undefined;
+  readonly ceresUrl: string | undefined;
 
   constructor() {
     const { DATABASE_URL, SESSION_SECRET, WEB_ORIGIN } = process.env;
@@ -69,6 +70,28 @@ export class RuntimeConfig {
         );
       }
     }
+    let ceresUrl: string | undefined;
+    if (process.env.CERES_URL !== undefined) {
+      try {
+        const parsed = new URL(process.env.CERES_URL);
+        if (
+          !['http:', 'https:'].includes(parsed.protocol) ||
+          !parsed.hostname ||
+          parsed.username ||
+          parsed.password ||
+          parsed.hash ||
+          process.env.CERES_URL.includes('#')
+        ) {
+          throw new Error();
+        }
+        ceresUrl =
+          parsed.origin + parsed.pathname.replace(/\/+$/, '') + parsed.search;
+      } catch {
+        throw new Error(
+          'CERES_URL must be an HTTP URL without credentials or a fragment.',
+        );
+      }
+    }
     const port = Number(process.env.PORT ?? 3001);
     if (!Number.isInteger(port) || port < 1 || port > 65535) {
       throw new Error('PORT must be an integer between 1 and 65535.');
@@ -79,5 +102,6 @@ export class RuntimeConfig {
     this.production = process.env.NODE_ENV === 'production';
     this.port = port;
     this.fatigueForecastUrl = forecastUrl;
+    this.ceresUrl = ceresUrl;
   }
 }

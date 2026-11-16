@@ -11,7 +11,7 @@ import { listCheckInActions, listCheckIns, type CheckInAction } from "@/lib/api"
 import circleCheck from "./assets/log-circle-check.svg";
 import flag from "./assets/log-flag.svg";
 import orbit from "./assets/log-orbit.svg";
-import { COPY, ROW_STATUS, eventAt, formatLogDate, historyTitle, planStatus } from "./plan-model";
+import { COPY, ROW_STATUS, eventAt, formatLogDate, planStatus } from "./plan-model";
 
 const ICON = { completed: circleCheck, dismissed: flag, superseded: orbit, suggested: flag, acknowledged: flag } as const;
 const TONE = { completed: "cyan", suggested: "cyan", acknowledged: "cyan", dismissed: "purple", superseded: "purple" } as const;
@@ -81,7 +81,7 @@ export function HistoryScreen() {
                       </span>
                       {/* Figma "Log entry" is 400px wide, so the status tag sits in a fixed column. */}
                       <div className="flex min-w-0 flex-1 flex-col gap-1 canvas:w-[400px] canvas:flex-none">
-                        <p className="text-body-lg text-ivory">{historyTitle(a.action_code)}</p>
+                        <p className="text-body-lg text-ivory">{a.title}</p>
                         <p className="text-pill text-muted">{formatLogDate(eventAt(a))}</p>
                       </div>
                       {s ? <StatusPill tone={TONE[s]}>{ROW_STATUS[s]}</StatusPill> : null}

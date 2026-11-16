@@ -4,7 +4,6 @@ import { afterEach, describe, it } from "node:test";
 import {
   ApiError,
   evaluateCheckInActions,
-  generateRecommendation,
   getMissionContext,
   listCheckIns,
   putCheckIn,
@@ -49,7 +48,7 @@ describe("api client", () => {
   });
 
   it("POSTs evaluate with no body", async () => {
-    mockFetch(json({ status: "ready", action: null, explanation: "" }));
+    mockFetch(json({ status: "insufficient_history", forecast: { status: "insufficient_history" }, actions: [] }));
     await evaluateCheckInActions("abc");
     assert.equal(calls[0].url, "http://localhost:3001/api/check-ins/abc/actions/evaluate");
     assert.equal(calls[0].init.method, "POST");
@@ -83,17 +82,4 @@ describe("api client", () => {
     });
   });
 
-  it("POSTs the check-ins and forecast to the same-origin recommendations route", async () => {
-    mockFetch(json({ insight: { title: "t" }, tasks: [] }));
-    const forecast = { status: "unavailable" } as const;
-    await generateRecommendation([{ id: "c1" } as never], forecast);
-    assert.equal(calls[0].url, "/api/recommendations");
-    assert.equal(calls[0].init.method, "POST");
-    assert.equal(calls[0].init.body, JSON.stringify({ check_ins: [{ id: "c1" }], forecast }));
-  });
-
-  it("rejects with ApiError when Ceres is unavailable", async () => {
-    mockFetch(json({ error: "ceres_unavailable" }, 503));
-    await assert.rejects(generateRecommendation([{ id: "c1" } as never]), (e: unknown) => e instanceof ApiError && e.status === 503);
-  });
 });

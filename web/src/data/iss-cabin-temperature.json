@@ -1,7 +1,7 @@
 {
-  "description": "Historical ISS cabin air temperature sample. Fill in from NASA OSDR Environmental Data App -> Data Tables: pick a mission, export the telemetry table and copy one ISS temperature row with its timestamp. While celsius is null, the API reports the value as pending.",
-  "sourceUrl": "https://visualization.osdr.nasa.gov/eda",
-  "mission": null,
-  "celsius": null,
-  "measuredAt": null
+  "description": "Historical ISS cabin temperature from NASA EDA RR-1 telemetry: Temp_degC_ISS at Controller_Time_GMT. GMT is represented as UTC. This is a 2014 sample, not a live measurement.",
+  "sourceUrl": "https://visualization.osdr.nasa.gov/eda/dashboard_RR-1",
+  "mission": "RR-1 (SpaceX-4)",
+  "celsius": 22.8,
+  "measuredAt": "2014-10-01T00:00:00.000Z"
 }

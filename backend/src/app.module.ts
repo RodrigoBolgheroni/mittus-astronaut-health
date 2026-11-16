@@ -13,6 +13,7 @@ import {
 } from './check-in-actions/check-in-actions.controller.js';
 import { CheckInActionsService } from './check-in-actions/check-in-actions.service.js';
 import { ForecastService } from './forecast/forecast.service.js';
+import { CeresService } from './recommendations/ceres.service.js';
 
 @Module({
   imports: [],
@@ -29,6 +30,7 @@ import { ForecastService } from './forecast/forecast.service.js';
     CheckInsService,
     CheckInActionsService,
     ForecastService,
+    CeresService,
   ],
 })
 export class AppModule {}

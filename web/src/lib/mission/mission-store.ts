@@ -86,10 +86,10 @@ export type RegisterResult =
   | { ok: false; reason: "unavailable" | "code_taken" | "unknown_place" };
 
 /**
- * Inserts the mission and both legs in one transaction and links it to the
- * session (a session has one mission). `isDemo` moves the demo flag to it.
+ * Inserts an ordinary mission and both legs in one transaction and links it
+ * to the required session (a session has one mission). Demo selection is admin-only.
  */
-export async function registerMission(reg: MissionRegistration, sessionId: string | null): Promise<RegisterResult> {
+export async function registerMission(reg: MissionRegistration, sessionId: string): Promise<RegisterResult> {
   const db = pool();
   if (!db) return { ok: false, reason: "unavailable" };
   let client;
@@ -101,11 +101,10 @@ export async function registerMission(reg: MissionRegistration, sessionId: strin
   }
   try {
     await client.query("begin");
-    if (reg.isDemo) await client.query("update public.missions set is_demo = false where is_demo");
     const { rows } = await client.query<{ id: string }>(
       `insert into public.missions (code, name, is_demo, ll2_launch_id, norad_id, reference_label, reference_url)
-       values ($1, $2, $3, $4, $5, $6, $7) returning id`,
-      [reg.code, reg.name, reg.isDemo, reg.ll2LaunchId, reg.noradId, reg.referenceLabel, reg.referenceUrl],
+       values ($1, $2, false, $3, $4, $5, $6) returning id`,
+      [reg.code, reg.name, reg.ll2LaunchId, reg.noradId, reg.referenceLabel, reg.referenceUrl],
     );
     const missionId = rows[0]!.id;
     for (const phase of MISSION_PHASES) {
@@ -123,13 +122,11 @@ export async function registerMission(reg: MissionRegistration, sessionId: strin
         return { ok: false, reason: "unknown_place" };
       }
     }
-    if (sessionId) {
-      await client.query(
-        `insert into public.session_missions (session_id, mission_id) values ($1::uuid, $2)
-         on conflict (session_id) do update set mission_id = excluded.mission_id, created_at = now()`,
-        [sessionId, missionId],
-      );
-    }
+    await client.query(
+      `insert into public.session_missions (session_id, mission_id) values ($1::uuid, $2)
+       on conflict (session_id) do update set mission_id = excluded.mission_id, created_at = now()`,
+      [sessionId, missionId],
+    );
     await client.query("commit");
     return { ok: true, code: reg.code };
   } catch (error) {

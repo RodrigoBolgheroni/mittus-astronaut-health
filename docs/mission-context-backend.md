@@ -66,7 +66,7 @@ Com `norad_id = 100882` (Crew Dragon da Crew-13, acoplada hoje), a volta devolve
 
 As posições vêm de dados do NORAD (wheretheiss.at e CelesTrak), e a partida vem da Launch Library 2, um catálogo comunitário. Essas fontes **não contam como dados da NASA** e devem ser citadas em **Space Agency Partner Data and Other References**.
 
-Continuam contando como recursos da NASA a pesquisa do Human Research Program sobre sono e fadiga, o perfil da missão Crew-12 e a temperatura da cabine (Environmental Data App). **`web/src/data/iss-cabin-temperature.json` ainda está vazio**, e preenchê-lo reforça o uso de dados da NASA.
+NASA references include Human Research Program sleep/fatigue research, the Crew-12 profile and the historical cabin sample in `web/src/data/iss-cabin-temperature.json`: RR-1 (SpaceX-4), 22.8 °C at 2014-10-01 00:00:00 GMT. The value is `temperature_iss` in the [official RR-1 telemetry response](https://visualization.osdr.nasa.gov/eda/dashboard_RR-1); NASA Data Tables identifies its columns as `Temp_degC_ISS` and `Controller_Time_GMT`. GMT is stored as UTC. This is a historical 2014 sample, never a live cabin reading.
 
 ## Como testar
 
