@@ -1,35 +1,35 @@
 # Mittus — NASA Space Apps Challenge 2026
 
-O Mittus participa do desafio **Create Health Monitoring Software for Astronauts on Space Missions**. O objetivo é criar uma ferramenta visual que permita ao astronauta registrar indicadores, avaliar a própria saúde durante missões de longa duração e identificar próximos passos, incluindo quando envolver a tripulação ou a equipe médica em solo.
+Mittus is an entry in the **Create Health Monitoring Software for Astronauts on Space Missions** challenge. The goal is to create a visual tool that lets astronauts log health indicators, monitor their health during long-duration missions, and identify next steps, including when to involve the crew or the medical team on Earth.
 
-## Equipe
+## Team
 
-| Área | Responsáveis |
+| Area | Owners |
 | --- | --- |
-| Backend do check-in diário | Luis |
-| Check-in Actions e estados das tarefas | Neves |
+| Daily check-in backend | Luis |
+| Check-in Actions and task states | Neves |
 | Frontend | Luigi |
-| Machine Learning | Rodrigo |
-| IA de recomendação e geração das tarefas do checklist | Giulia |
+| Machine learning | Rodrigo |
+| AI recommendations and checklist task generation | Giulia |
 | Design | Gabi |
 
-## Evento local — Campinas, SP
+## Local event — Campinas, SP
 
-- O Mittus participa **on-line pelo evento local de Campinas**, em **14 e 15 de novembro de 2026**. Cada integrante deve concluir a inscrição no portal do NASA Space Apps. O formulário do site local é uma pré-inscrição. [Página do evento de Campinas](https://www.spaceappschallenge.org/2026/local-events/campinas/) · [FAQ da organização local](https://www.nasaspaceappscampinas.org/)
-- O **Local Lead** é **Marco Antônio Benevides Linhares**. Para confirmar se há pitch on-line ou entrega local adicional, consulte a [programação no portal](https://www.spaceappschallenge.org/2026/local-events/campinas/?tab=schedule) e os comunicados do WhatsApp da organização, acessível pelo [site de Campinas](https://www.nasaspaceappscampinas.org/).
+- Mittus is participating **online through the Campinas local event** on **November 14 and 15, 2026**. Each team member must complete registration on the NASA Space Apps portal. The local website form is a pre-registration. [Campinas event page](https://www.spaceappschallenge.org/2026/local-events/campinas/) · [Local organizers' FAQ](https://www.nasaspaceappscampinas.org/)
+- The **Local Lead** is **Marco Antônio Benevides Linhares**. To confirm whether there will be an online pitch or additional local submission, check the [portal schedule](https://www.spaceappschallenge.org/2026/local-events/campinas/?tab=schedule) and WhatsApp announcements from the organizers, accessible through the [Campinas website](https://www.nasaspaceappscampinas.org/).
 
-## Contexto do desafio
+## Challenge context
 
-- O Human Research Program da NASA identifica cinco perigos dos voos espaciais tripulados: radiação espacial, isolamento e confinamento, distância da Terra, campos gravitacionais e ambiente fechado hostil. Entre os riscos à saúde estão alterações imunológicas, perda óssea, eventos cardiovasculares e problemas de saúde comportamental.
-- Indicadores sugeridos incluem pressão arterial, frequência cardíaca, glicemia, temperatura corporal, horas de sono e humor. O desafio aceita entradas variadas, incluindo registros manuais e imagens de exames.
-- Ao avaliar um indicador, consulte as fontes do desafio para entender sua relevância, como medi-lo a bordo, como interpretar o resultado e quando orientar nova medição ou escalonamento.
-- A NASA cita gráficos de tendências, alertas visuais, lembretes, gamificação e um mapa corporal interativo como opções de interface.
+- NASA's Human Research Program identifies five hazards of human spaceflight: space radiation, isolation and confinement, distance from Earth, gravity fields, and a hostile closed environment. Health risks include immune changes, bone loss, cardiovascular events, and behavioral health problems.
+- Suggested indicators include blood pressure, heart rate, blood glucose, body temperature, sleep hours, and mood. The challenge accepts varied inputs, including manual records and medical-exam images.
+- When evaluating an indicator, consult the challenge sources to understand its relevance, how to measure it onboard, how to interpret the result, and when to recommend remeasurement or escalation.
+- NASA cites trend charts, visual alerts, reminders, gamification, and an interactive body map as interface options.
 
-## Referências oficiais
+## Official references
 
-- Para consultar os guias da edição e as perguntas frequentes, abra o [índice oficial de recursos do NASA Space Apps](https://www.spaceappschallenge.org/resources/).
-- Para preparar a demonstração, preencher a página **Project** ou submeter o projeto, consulte os [requisitos de entrega](REQUISITOS-DE-ENTREGA.md).
-- Para consultar as funcionalidades, as rotas propostas e o banco do MVP, abra [FEATURES.md](FEATURES.md).
-- Para definir o escopo, a stack e a divisão do trabalho, consulte o [alinhamento do MVP](docs/superpowers/plans/2026-11-14-mittus-mvp.md).
-- Para requisitos e materiais do evento, consulte o [enunciado do desafio](https://www.spaceappschallenge.org/2026/challenges/health-monitoring-software/?tab=details), a [aba Resources](https://www.spaceappschallenge.org/2026/challenges/health-monitoring-software/?tab=resources) e o [vídeo oficial](https://youtu.be/RERG3gEmdC8).
-- Para embasar indicadores e riscos, consulte os [cinco perigos dos voos espaciais](https://www.nasa.gov/hrp/hazards/), os [riscos à saúde](https://www.nasa.gov/hrp/risks/) e as [pesquisas em andamento](https://www.nasa.gov/hrp/ongoing-hrp-research/) do Human Research Program.
+- For this edition's guides and FAQs, see the [official NASA Space Apps resource index](https://www.spaceappschallenge.org/resources/).
+- To prepare the demo, complete the **Project** page, or submit the project, see the [submission requirements](SUBMISSION-REQUIREMENTS.md).
+- For MVP features, proposed routes, and database details, see [FEATURES.md](FEATURES.md).
+- For scope, stack, and work ownership, see the [MVP alignment plan](docs/superpowers/plans/2026-11-14-mittus-mvp.md).
+- For event requirements and materials, see the [challenge statement](https://www.spaceappschallenge.org/2026/challenges/health-monitoring-software/?tab=details), the [Resources tab](https://www.spaceappschallenge.org/2026/challenges/health-monitoring-software/?tab=resources), and the [official video](https://youtu.be/RERG3gEmdC8).
+- For indicator and risk evidence, see the Human Research Program's [five hazards of spaceflight](https://www.nasa.gov/hrp/hazards/), [health risks](https://www.nasa.gov/hrp/risks/), and [ongoing research](https://www.nasa.gov/hrp/ongoing-hrp-research/).

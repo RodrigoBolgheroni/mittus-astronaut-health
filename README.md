@@ -130,7 +130,7 @@ cd web && npm test
 - [Check-ins spec](docs/specs/check-ins-spec.md) and [database notes](docs/check-ins-database.md)
 - [Missions database](docs/missions-database.md) and [mission context backend](docs/mission-context-backend.md)
 - [MVP plan](docs/superpowers/plans/2026-11-14-mittus-mvp.md)
-- [Submission requirements](REQUISITOS-DE-ENTREGA.md)
+- [Submission requirements](SUBMISSION-REQUIREMENTS.md)
 - [Challenge statement](https://www.spaceappschallenge.org/2026/challenges/health-monitoring-software/?tab=details)
 
 ## Team

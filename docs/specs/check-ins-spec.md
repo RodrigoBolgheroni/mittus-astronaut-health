@@ -1,101 +1,100 @@
-# SPEC — Primeira implementação de check-ins
+# SPEC — Initial check-in implementation
 
-**Status:** API implementada e verificada; contrato disponível para integração com o frontend.
-**Escopo:** API de check-ins no backend NestJS, persistência via Prisma/PostgreSQL e contrato para integração com o calendário.
-**Referências:** [schema Prisma](../../backend/prisma/schema.prisma), [especificação de dados](../check-ins-database.md) e [features do MVP](../../FEATURES.md).
+**Status:** API implemented and verified; contract available for frontend integration.
+**Scope:** Check-in API in the NestJS backend, persistence through Prisma/PostgreSQL, and a contract for calendar integration.
+**References:** [Prisma schema](../../backend/prisma/schema.prisma), [data specification](../check-ins-database.md), and [MVP features](../../FEATURES.md).
 
-## 1. Objetivo
+## 1. Purpose
 
-Permitir que um astronauta da demonstração registre sono, estresse, humor, conflito na equipe e fadiga; corrija o registro do dia; e consulte o histórico por sessão. O registro deve continuar disponível após recarregar a página.
+Allow a demo astronaut to record sleep, stress, mood, team conflict, and fatigue; correct that day's record; and query history by session. The record must remain available after the page reloads.
 
-O primeiro fluxo integrado será:
+The first integrated flow will be:
 
-1. Consultar o calendário e estabelecer a sessão de demonstração.
-2. Preencher o check-in do dia.
-3. Salvar o registro pela API.
-4. Consultar novamente o calendário e visualizar o registro salvo.
-5. Recarregar a página e recuperar os mesmos dados pela sessão.
+1. Query the calendar and establish the demo session.
+2. Complete that day's check-in.
+3. Save the record through the API.
+4. Query the calendar again and display the saved record.
+5. Reload the page and restore the same data for the session.
 
-Nomes de campos, mensagens da API e textos apresentados no aplicativo devem estar em inglês. A documentação pode permanecer em português.
+API field names, API messages, and text shown in the app must be in English. Project documentation is also maintained in English.
 
-## 2. Base existente e decisões
+## 2. Existing system and decisions
 
-### Confirmado
+### Confirmed
 
-- O banco é PostgreSQL no Supabase; o backend acessa o banco com credenciais de servidor.
-- O modelo `CheckIn` está mapeado para `check_ins`.
-- Há no máximo um check-in por `(session_id, check_in_date)`.
-- Sono e as quatro escalas são obrigatórios; `description` é opcional.
-- As tabelas de opções das escalas já existem e são referenciadas por chaves estrangeiras.
+- The database is PostgreSQL on Supabase; the backend accesses it with server credentials.
+- The `CheckIn` model is mapped to `check_ins`.
+- There is at most one check-in per `(session_id, check_in_date)`.
+- Sleep and the four scales are required; `description` is optional.
+- The scale option tables already exist and are referenced by foreign keys.
 - `check_in_actions` is now processed by the same backend; see the [implemented action contracts](../../backend/README.md#check-in-actions).
 
-### Decisões confirmadas para esta primeira versão
+### Confirmed decisions for this first version
 
-As cinco propostas abaixo foram aprovadas e devem orientar a implementação:
+The following five proposals were approved and must guide implementation:
 
-| Tema | Decisão |
+| Topic | Decision |
 | --- | --- |
-| Dia de referência | UTC; o backend é a autoridade para determinar o dia atual. |
-| Escrita | Criar e substituir apenas o check-in do dia atual. |
-| Histórico | Consultar registros anteriores; datas passadas e futuras não são graváveis nesta versão. |
-| Descrição | Texto livre opcional, com até 2.000 caracteres após remoção de espaços nas extremidades. |
-| Sessão | Sessão anônima de demonstração por cookie assinado, com validade fixa de 30 dias. |
+| Reference day | UTC; the backend is authoritative for determining the current date. |
+| Writes | Create or replace only the current day's check-in. |
+| History | Previous records can be queried; past and future dates cannot be written in this version. |
+| Description | Optional free text, up to 2,000 characters after trimming whitespace from both ends. |
+| Session | Anonymous demo session using a signed cookie, with a fixed 30-day lifetime. |
 
-O intervalo de sono de 0 a 24 horas e as escalas abaixo já são impostos pelo banco. Alterar a regra de datas no futuro não exigirá mudar os tipos das colunas.
+The 0–24 hour sleep range and the scales below are already enforced by the database. Changing the date rule in the future will not require changing the column types.
 
-## 3. Dados e validação
+## 3. Data and validation
 
-Os nomes na API usam `snake_case`; os campos do Prisma usam `camelCase` e `@map` para as colunas correspondentes.
+API fields use `snake_case`; Prisma fields use `camelCase` and `@map` for the corresponding columns.
 
-| Campo da API | Campo Prisma | Regra |
+| API field | Prisma field | Rule |
 | --- | --- | --- |
-| `sleep_hours` | `sleepHours` | Número finito entre 0 e 24, com no máximo duas casas decimais. |
-| `stress_level` | `stressLevel` | Inteiro de 1 a 5: `Very calm` → `Very stressed`. |
-| `mood_level` | `moodLevel` | Inteiro de 1 a 5: `Very happy / positive` → `Very sad / negative`. |
-| `team_conflict_level` | `teamConflictLevel` | Inteiro de 1 a 5; usar os rótulos cadastrados na tabela de opções. |
-| `fatigue` | `fatigue` | Inteiro de 1 a 7: `Fully alert and wide awake` → `Completely exhausted and unable to function effectively`. |
-| `description` | `description` | String ou `null`; campo omitido, `null` ou texto vazio após trim resulta em `null`. |
+| `sleep_hours` | `sleepHours` | Finite number from 0 to 24, with at most two decimal places. |
+| `stress_level` | `stressLevel` | Integer from 1 to 5: `Very calm` → `Very stressed`. |
+| `mood_level` | `moodLevel` | Integer from 1 to 5: `Very happy / positive` → `Very sad / negative`. |
+| `team_conflict_level` | `teamConflictLevel` | Integer from 1 to 5; use the labels stored in the options table. |
+| `fatigue` | `fatigue` | Integer from 1 to 7: `Fully alert and wide awake` → `Completely exhausted and unable to function effectively`. |
+| `description` | `description` | String or `null`; omitted, `null`, or whitespace-only text after trimming results in `null`. |
 
-Regras adicionais:
+Additional rules:
 
-- Rejeitar campos desconhecidos, inclusive `session_id`, `id`, `created_at` e `updated_at` no corpo de escrita.
-- Rejeitar strings numéricas, booleanos, arrays e objetos onde se espera número. Não converter silenciosamente `"3"` em `3`.
-- Todos os indicadores devem estar presentes em cada `PUT`. Não implementar atualização parcial.
-- Datas devem estar em `YYYY-MM-DD` e existir no calendário; rejeitar, por exemplo, `2026-02-30`.
-- Tratar `check_in_date` como data sem horário. Usar uma conversão consistente em UTC na fronteira do Prisma, sem deslocamento pelo fuso do processo.
-- Serializar `sleep_hours` como número JSON, mesmo que o Prisma o represente como `Decimal`.
-- Serializar `created_at` e `updated_at` como instantes ISO 8601 em UTC.
+- Reject unknown fields, including `session_id`, `id`, `created_at`, and `updated_at` in the write body.
+- Reject numeric strings, booleans, arrays, and objects where a number is expected. Do not silently convert `"3"` to `3`.
+- Every indicator must be present in each `PUT`. Do not implement partial updates.
+- Dates must use `YYYY-MM-DD` and be valid calendar dates; for example, reject `2026-02-30`.
+- Treat `check_in_date` as a date without a time. Use a consistent UTC conversion at the Prisma boundary, without shifting by the process timezone.
+- Serialize `sleep_hours` as a JSON number, even if Prisma represents it as `Decimal`.
+- Serialize `created_at` and `updated_at` as ISO 8601 UTC instants.
 
-**Rótulos de conflito — confirmado:** manter os rótulos cadastrados no banco. A API deve retorná-los sem criar outra lista divergente:
+**Conflict labels — confirmed:** Keep the labels stored in the database. The API must return them rather than introducing a divergent list:
 
-| Valor | Rótulo |
-| --- | --- |
+| Value | Label |
 | 1 | No team conflict |
 | 2 | Low team conflict |
 | 3 | Moderate team conflict |
 | 4 | High team conflict |
 | 5 | Very high team conflict |
 
-## 4. Sessão de demonstração
+## 4. Demo session
 
-- Cookie: `mittus_session`, contendo UUID gerado no servidor e assinatura verificável.
-- O servidor cria uma sessão quando o cookie está ausente, inválido ou expirado. Uma nova sessão começa sem histórico.
-- O mesmo cookie é usado nas três rotas de check-ins e na rota de opções.
-- Usar `HttpOnly`, `Path=/`, `SameSite=Lax`, `Max-Age=2592000` e `Secure` em produção. A assinatura deve incluir a expiração e usar um segredo exclusivo do servidor.
-- Não aceitar um UUID arbitrário enviado pelo cliente como sessão válida. Não retornar o identificador da sessão no JSON.
-- Toda consulta deve filtrar por `sessionId`. Toda escrita deve obter esse valor exclusivamente da sessão validada.
-- Apagar ou expirar o cookie encerra o acesso àquele histórico; recuperação entre dispositivos não faz parte do fluxo anônimo.
-- As respostas de registros devem usar `Cache-Control: private, no-store`.
+- Cookie: `mittus_session`, containing a server-generated UUID and a verifiable signature.
+- The server creates a session when the cookie is missing, invalid, or expired. A new session starts with no history.
+- The same cookie is used for all three check-in routes and the options route.
+- Use `HttpOnly`, `Path=/`, `SameSite=Lax`, `Max-Age=2592000`, and `Secure` in production. The signature must include the expiration and use a server-only secret.
+- Do not accept an arbitrary UUID supplied by the client as a valid session. Do not return the session identifier in JSON.
+- Every query must filter by `sessionId`. Every write must obtain this value exclusively from the validated session.
+- Deleting or expiring the cookie ends access to that history; cross-device recovery is outside the anonymous flow.
+- Check-in responses must use `Cache-Control: private, no-store`.
 
-Para a integração web, o cliente deve enviar `credentials: 'include'`. Se as origens forem diferentes, o backend deve permitir explicitamente a origem configurada e habilitar credenciais, sem usar `*`. O deploy proposto usa frontend e API no mesmo site para compatibilidade com `SameSite=Lax`. Um deploy entre sites distintos exige revisar cookies e proteção CSRF antes da integração.
+For web integration, the client must send `credentials: 'include'`. If origins differ, the backend must explicitly allow the configured origin and enable credentials; it must not use `*`. The proposed deployment uses the frontend and API on the same site for compatibility with `SameSite=Lax`. A cross-site deployment requires reviewing cookies and CSRF protection before integration.
 
-Requisições de escrita originadas no navegador devem validar `Origin` contra a origem web permitida; CORS sozinho não substitui essa validação. Cookies, assinaturas e URLs de conexão não devem aparecer em logs.
+Write requests originating in a browser must validate `Origin` against the allowed web origin; CORS alone does not replace this check. Cookies, signatures, and connection URLs must not appear in logs.
 
-## 5. Contrato HTTP
+## 5. HTTP contract
 
-Prefixo global: `/api`.
+Global prefix: `/api`.
 
-### 5.1 Criar ou substituir o check-in
+### 5.1 Create or replace a check-in
 
 `PUT /api/check-ins/:date`
 
@@ -110,7 +109,7 @@ Prefixo global: `/api`.
 }
 ```
 
-Resposta: **200 OK**, tanto para criação quanto para substituição, com o registro completo:
+Response: **200 OK**, both when creating and replacing a record, with the complete record:
 
 ```json
 {
@@ -127,34 +126,34 @@ Resposta: **200 OK**, tanto para criação quanto para substituição, com o reg
 }
 ```
 
-- Os exemplos usam uma data fictícia; a regra de escrita compara a data recebida com o dia atual do backend.
-- Persistir por `upsert` usando a chave composta `sessionId_checkInDate`.
-- Na atualização, manter `id` e `created_at`; o Prisma atualiza `updated_at` via `@updatedAt`.
-- A omissão de `description` em um novo `PUT` remove a descrição anterior, pois a operação substitui o conteúdo completo.
-- Repetições não criam duplicatas. Escritas concorrentes para a mesma sessão/data devem resultar em um único registro por meio do `upsert` atômico. O último conteúdo gravado prevalece. Não interpretar códigos de erro do Prisma/PostgreSQL nem implementar retries baseados nesses códigos.
+- Examples use a fictional date; the write rule compares the submitted date with the backend's current date.
+- Persist with `upsert` using the `sessionId_checkInDate` compound key.
+- On update, preserve `id` and `created_at`; Prisma updates `updated_at` through `@updatedAt`.
+- Omitting `description` in a new `PUT` clears the previous description because the operation replaces the complete record.
+- Repeated writes do not create duplicates. Concurrent writes for the same session/date must result in one record through the atomic `upsert`. The last written content wins. Do not interpret Prisma/PostgreSQL error codes or implement retries based on those codes.
 
-### 5.2 Consultar uma data
+### 5.2 Query a date
 
 `GET /api/check-ins/:date`
 
-- **200 OK:** mesmo formato do registro retornado pelo `PUT`.
-- **404 Not Found:** não existe check-in para a data na sessão atual.
-- É permitido consultar datas passadas, atuais ou futuras; uma data válida sem registro retorna 404.
+- **200 OK:** same format as the record returned by `PUT`.
+- **404 Not Found:** no check-in exists for this date in the current session.
+- Past, current, and future dates may be queried; a valid date with no record returns 404.
 
-### 5.3 Consultar histórico ou intervalo do calendário
+### 5.3 Query history or a calendar range
 
 `GET /api/check-ins`
 
-Dois modos exclusivos:
+The endpoint supports two mutually exclusive modes:
 
-| Modo | Exemplo | Comportamento |
+| Mode | Example | Behavior |
 | --- | --- | --- |
-| Histórico recente | `?limit=7` | Retorna os últimos registros, com data decrescente. Padrão: 7; mínimo: 1; máximo: 90. |
-| Calendário | `?from=2026-11-01&to=2026-12-01` | Retorna o intervalo `[from, to)`, com data crescente. Ambas as datas são obrigatórias; `from < to`; máximo de 366 dias. |
+| Recent history | `?limit=7` | Returns the most recent records in descending date order. Default: 7; minimum: 1; maximum: 90. |
+| Calendar | `?from=2026-11-01&to=2026-12-01` | Returns the `[from, to)` range in ascending date order. Both dates are required; `from < to`; maximum: 366 days. |
 
-Rejeitar `limit` combinado com `from` ou `to`, limites não inteiros, parâmetros desconhecidos e intervalos incompletos. O fim exclusivo deve ser mantido também no contrato do frontend.
+Reject `limit` combined with `from` or `to`, non-integer limits, unknown parameters, and incomplete ranges. The exclusive end must also be preserved in the frontend contract.
 
-Resposta: **200 OK**.
+Response: **200 OK**.
 
 ```json
 {
@@ -164,13 +163,13 @@ Resposta: **200 OK**.
 }
 ```
 
-Quando houver dados, cada item terá o formato completo de registro definido acima. `today` e `timezone` permitem que o frontend destaque o dia correto sem depender do relógio local. Dias ausentes não geram registros artificiais; lista vazia é sucesso.
+When data exists, each item has the complete record format defined above. `today` and `timezone` let the frontend highlight the correct date without relying on the local clock. Missing days do not produce artificial records; an empty list is a successful response.
 
-### 5.4 Consultar opções das escalas
+### 5.4 Read scale options
 
 `GET /api/check-in-options`
 
-Resposta **200 OK**, com os valores lidos das quatro tabelas de opções, ordenados por `value`:
+Response: **200 OK**, with values read from the four option tables and sorted by `value`:
 
 ```json
 {
@@ -187,11 +186,11 @@ Resposta **200 OK**, com os valores lidos das quatro tabelas de opções, ordena
 }
 ```
 
-O exemplo abrevia três listas; na implementação, elas devem conter todos os valores cadastrados: cinco por dimensão de humor e sete para fadiga.
+The example abbreviates three lists; in the implementation, they must contain every stored value: five for each mood/stress dimension and seven for fatigue.
 
-## 6. Erros
+## 6. Errors
 
-Erros de validação e de negócio definidos pela aplicação usam mensagens em inglês e o seguinte formato:
+Application-defined validation and business errors use English messages and the following format:
 
 ```json
 {
@@ -204,20 +203,20 @@ Erros de validação e de negócio definidos pela aplicação usam mensagens em 
 }
 ```
 
-| HTTP | `code` | Situação |
+| HTTP | `code` | Situation |
 | --- | --- | --- |
-| 400 | `VALIDATION_ERROR` | Corpo, data ou consulta inválidos, validados com `class-validator`. |
-| 403 | `ORIGIN_NOT_ALLOWED` | Origem de navegador não autorizada para escrita. |
-| 404 | `CHECK_IN_NOT_FOUND` | Consulta individual sem registro na sessão. |
-| 422 | `CHECK_IN_DATE_NOT_WRITABLE` | Tentativa de gravar fora do dia atual em UTC. |
+| 400 | `VALIDATION_ERROR` | Invalid body, date, or query, validated with `class-validator`. |
+| 403 | `ORIGIN_NOT_ALLOWED` | Browser origin is not authorized for writes. |
+| 404 | `CHECK_IN_NOT_FOUND` | Individual query finds no record in the current session. |
+| 422 | `CHECK_IN_DATE_NOT_WRITABLE` | Attempt to write outside the current UTC date. |
 
-Não utilizar filtro customizado de exceções nem classificar falhas por códigos do Prisma/PostgreSQL. Verificações de existência devem consultar o banco e avaliar o resultado; por exemplo, consultar o check-in por sessão/data e retornar 404 quando o resultado for `null`.
+Do not use a custom exception filter or classify failures by Prisma/PostgreSQL error codes. Existence checks must query the database and inspect the result; for example, look up a check-in by session/date and return 404 when the result is `null`.
 
-JSON malformado e exceções inesperadas são tratados pelo mecanismo padrão do NestJS. Falhas inesperadas retornam HTTP 500 com `{ "statusCode": 500, "message": "Internal server error" }`, sem SQL, credenciais ou stack trace na resposta.
+Malformed JSON and unexpected exceptions are handled by NestJS's default mechanism. Unexpected failures return HTTP 500 with `{ "statusCode": 500, "message": "Internal server error" }`, without SQL, credentials, or stack traces in the response.
 
-## 7. Organização técnica
+## 7. Technical organization
 
-Estrutura sugerida, consistente com NestJS e TypeScript ESM usados no projeto:
+Suggested structure, consistent with the project's NestJS and TypeScript ESM setup:
 
 ```text
 backend/
@@ -252,46 +251,45 @@ backend/
     check-ins.e2e-spec.ts
 ```
 
-- Configurar o prefixo `/api`, validação e CORS, utilizando o tratamento padrão de exceções do NestJS.
-- Usar interfaces sem validações em `dto/`, com arquivos `.input.ts` e `.output.ts`, para os contratos dos services. Validar corpo, query e path com `class-validator` nas classes de `requests/`, `query-params/` e `path-params/`, respectivamente. Aplicar `ValidationPipe` e usar `class-transformer` apenas para a conversão do limite da query e a normalização da descrição. Converter datas para o Prisma no service, sem parsers manuais de validação.
-- Usar uma instância compartilhada de `PrismaService`, com encerramento adequado da conexão.
-- Instalar e fixar versões compatíveis do Prisma CLI e client. O schema atual usa `url = env("DATABASE_URL")`, formato validado com Prisma 6; uma atualização de major exige ajustar a configuração correspondente.
-- Padronizar a conexão em `DATABASE_URL`, conforme o datasource Prisma. Se o ambiente ainda usar `DATASOURCE_URL`, alinhar o nome no setup sem expor o valor.
-- Configurar `SESSION_SECRET`, `WEB_ORIGIN`, `PORT` e ambiente de execução no servidor. Carregar a configuração antes de instanciar o Prisma.
-- Usar o pooler adequado à execução da aplicação; comandos de migração/diff devem usar conexão direta ou pooler em modo sessão, conforme disponibilidade de rede.
-- Nenhuma nova tabela é necessária para este recorte. Preservar as restrições SQL de faixa, chaves estrangeiras e RLS existentes.
-- O acesso será exclusivamente pelo backend. O RLS existente não identifica sessões de demonstração; o isolamento por sessão deve ser implementado explicitamente em cada operação do backend.
+- Configure the `/api` prefix, validation, and CORS while retaining NestJS's default exception handling.
+- Use interfaces without validation in `dto/`, with `.input.ts` and `.output.ts` files, for service contracts. Validate bodies, queries, and paths with `class-validator` in `requests/`, `query-params/`, and `path-params/` classes, respectively. Apply `ValidationPipe` and use `class-transformer` only to convert the query limit and normalize the description. Convert dates for Prisma in the service, without manual validation parsers.
+- Use a shared `PrismaService` instance and close its connection properly.
+- Install and pin compatible Prisma CLI and client versions. The current schema uses `url = env("DATABASE_URL")`, a format validated with Prisma 6; a major-version upgrade requires the corresponding configuration change.
+- Standardize the connection on `DATABASE_URL`, as required by the Prisma datasource. If the environment still uses `DATASOURCE_URL`, align the name during setup without exposing its value.
+- Configure `SESSION_SECRET`, `WEB_ORIGIN`, `PORT`, and the runtime environment on the server. Load configuration before instantiating Prisma.
+- Use the appropriate pooler for application execution; migration/diff commands should use a direct connection or session-mode pooler, depending on network availability.
+- No new table is required for this scope. Preserve the existing SQL range constraints, foreign keys, and RLS.
+- Access is exclusively through the backend. Existing RLS does not identify demo sessions; the backend must explicitly enforce session isolation in every operation.
 - The canonical SQL history is `supabase/migrations`. Isolated tests replay those files instead of using `db push`; the recovered baseline and original mission migration are described in the [database synchronization guidance](../../backend/README.md#database-schema-synchronization). The existing Supabase project is not reset or migrated by test setup.
 
-## 8. Critérios de aceite e testes
+## 8. Acceptance criteria and tests
 
-- [x] Primeira consulta estabelece cookie; consultas seguintes reutilizam a sessão.
-- [x] Cookie adulterado ou expirado estabelece nova sessão e não recupera o histórico anterior.
-- [x] Salvar check-in válido retorna todos os campos no formato especificado.
-- [x] Reenviar a mesma sessão/data mantém um registro, preserva `id` e `created_at` e atualiza os indicadores.
-- [x] Escritas concorrentes não criam duplicatas nem produzem erro de conflito não tratado.
-- [x] `description` é normalizada e removida quando omitida em uma substituição.
-- [x] Valores limite válidos são aceitos; números fora de faixa, frações nas escalas, strings numéricas, campos desconhecidos e indicadores ausentes são rejeitados.
-- [x] Datas inexistentes e consultas inválidas são rejeitadas.
-- [x] Com relógio controlado, gravações em datas passadas/futuras são rejeitadas; o dia atual é calculado em UTC mesmo perto da meia-noite.
-- [x] Histórico recente respeita limite e ordenação; calendário inclui `from` e exclui `to`.
-- [x] Sessão B não lê nem altera os registros da sessão A, incluindo ao consultar a mesma data.
-- [ ] Recarregar o cliente mantém os dados enquanto o cookie é válido.
-- [x] Opções retornam 5/5/5/7 valores ordenados, com rótulos em inglês vindos do banco.
-- [x] Erro de banco retorna resposta sanitizada; escrita de origem não autorizada é rejeitada.
-- [x] Build, lint e testes relevantes passam.
+- [x] The first request sets a cookie; subsequent requests reuse the session.
+- [x] A tampered or expired cookie starts a new session and does not restore the previous history.
+- [x] Saving a valid check-in returns every field in the specified format.
+- [x] Repeating a write for the same session/date keeps one record, preserves `id` and `created_at`, and updates the indicators.
+- [x] Concurrent writes do not create duplicates or produce unhandled conflict errors.
+- [x] `description` is normalized and cleared when omitted from a replacement.
+- [x] Valid boundary values are accepted; out-of-range values, fractions on scales, numeric strings, unknown fields, and missing indicators are rejected.
+- [x] Invalid dates and queries are rejected.
+- [x] With a controlled clock, writes for past/future dates are rejected; the current date is calculated in UTC even near midnight.
+- [x] Recent history respects its limit and sort order; the calendar includes `from` and excludes `to`.
+- [x] Session B cannot read or modify session A's records, including when querying the same date.
+- [ ] Reloading the client preserves data while the cookie remains valid.
+- [x] Options return 5/5/5/7 sorted values, with English labels from the database.
+- [x] Database errors return sanitized responses; writes from unauthorized origins are rejected.
+- [x] Relevant build, lint, and tests pass.
 
-Usar Vitest/Supertest para HTTP e cookies. Os testes de persistência devem rodar em um banco de teste isolado e comprovar upsert, concorrência e isolamento por sessão; mocks sozinhos não comprovam essas propriedades. Executar também os [testes SQL existentes](../../backend/test/database/check-ins.sql) para verificar as restrições. Não apagar registros de outras sessões durante limpeza de testes.
+Use Vitest/Supertest for HTTP and cookie tests. Persistence tests must run against an isolated test database and prove upsert behavior, concurrency, and session isolation; mocks alone do not prove these properties. Also run the [existing SQL tests](../../backend/test/database/check-ins.sql) to verify constraints. Do not delete records from other sessions during test cleanup.
 
-Implementação e comandos de execução: [README do backend](../../backend/README.md). A verificação automatizada cobre a API com PostgreSQL local e a reutilização de cookies entre requisições; a validação da interface em navegador ocorre na integração do frontend.
+Implementation and run commands: [backend README](../../backend/README.md). Automated verification covers the API with local PostgreSQL and cookie reuse across requests; browser validation of the interface is part of frontend integration.
 
-## 9. Sequência de implementação
+## 9. Implementation sequence
 
-1. Configurar Prisma, conexão e variáveis de ambiente; gerar o client.
-2. Implementar sessão e validação de configuração.
-3. Implementar validações, gravação por upsert, serialização e consulta individual.
-4. Implementar listagem por limite/intervalo e leitura de opções.
-5. Padronizar erros e executar os testes de aceite.
-6. Integrar o frontend: carregar opções e calendário, enviar `PUT` e refazer a consulta após sucesso.
-
+1. Configure Prisma, the database connection, and environment variables; generate the client.
+2. Implement sessions and configuration validation.
+3. Implement validation, upsert writes, serialization, and individual-record queries.
+4. Implement listing by limit/range and option reads.
+5. Standardize errors and run the acceptance tests.
+6. Integrate the frontend: load options and the calendar, send `PUT`, and refetch after success.
 This specification covers the daily check-in API. Check-in actions are also implemented; see the [backend action contract](../../backend/README.md#check-in-actions) for evaluation, history and status updates. Actions now consume the shared trained synthetic fatigue model locally; language-model insights remain a separate integration.

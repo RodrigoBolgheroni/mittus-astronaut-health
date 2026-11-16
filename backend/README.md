@@ -1,29 +1,29 @@
 # Mittus — Backend
 
-API NestJS de check-ins diários, com Prisma 6 e PostgreSQL/Supabase.
+NestJS API for daily check-ins, using Prisma 6 and PostgreSQL/Supabase.
 
-## Configuração
+## Setup
 
-Requisitos: Node.js 24 e pnpm 10. Os comandos abaixo devem ser executados em `backend/`.
+Requirements: Node.js 24 and pnpm 10. Run the commands below from `backend/`.
 
 ```bash
 pnpm install
 pnpm prisma:generate
 ```
 
-Configure o `.env` usando [`.env.example`](.env.example) como referência, preservando suas credenciais existentes:
+Configure `.env` using [`.env.example`](.env.example) as a reference, preserving your existing credentials:
 
-| Variável         | Uso                                                                                                                                                                    |
+| Variable         | Usage                                                                                                                                                                 |
 | ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `DATABASE_URL`   | Conexão PostgreSQL de servidor. A aplicação também aceita o nome legado `DATASOURCE_URL` se `DATABASE_URL` estiver ausente. Os comandos do Prisma usam `DATABASE_URL`. |
-| `SESSION_SECRET` | Segredo aleatório com pelo menos 32 caracteres para assinar os cookies. Deve ser estável entre reinícios e igual em todas as instâncias da API.                        |
-| `WEB_ORIGIN`     | Origem exata do frontend, como `http://localhost:3000`, sem barra final.                                                                                               |
-| `PORT`           | Porta da API; padrão `3001`.                                                                                                                                           |
-| `NODE_ENV`       | `production` habilita o atributo `Secure` do cookie; use HTTPS nesse ambiente.                                                                                         |
+| `DATABASE_URL`   | PostgreSQL server connection. The application also accepts the legacy name `DATASOURCE_URL` if `DATABASE_URL` is absent. Prisma commands use `DATABASE_URL`. |
+| `SESSION_SECRET` | Random secret with at least 32 characters for signing cookies. It must remain stable across restarts and be identical across all API instances.           |
+| `WEB_ORIGIN`     | Exact frontend origin, such as `http://localhost:3000`, with no trailing slash.                                                                              |
+| `PORT`           | API port; defaults to `3001`.                                                                                                                                           |
+| `NODE_ENV`       | `production` enables the cookie's `Secure` attribute; use HTTPS in this environment.                                                                                   |
 | `FATIGUE_FORECAST_URL` | Optional trusted HTTP provider override. When unset, actions use the bundled synthetic fatigue model locally. |
 | `CERES_URL` | Optional server-only base URL for Ceres. Unset/unavailable uses the explicitly labeled persisted basic summary; never a fabricated prediction. |
 
-Para gerar um segredo local:
+To generate a local secret:
 
 ```bash
 node -e "console.log(require('node:crypto').randomBytes(32).toString('hex'))"
@@ -35,31 +35,31 @@ The existing Supabase database is already provisioned. Starting the API does not
 pnpm start:dev
 ```
 
-Produção:
+Production:
 
 ```bash
 pnpm build
 pnpm start:prod
 ```
 
-O build gera o client e copia o engine do Prisma para `dist`. Não é necessário publicar `src/generated` no Git.
+The build generates the client and copies the Prisma engine to `dist`. You do not need to commit `src/generated` to Git.
 
 ## Endpoints
 
-| Método | Rota                                           | Função                                                               |
+| Method | Route                                          | Purpose                                                              |
 | ------ | ---------------------------------------------- | -------------------------------------------------------------------- |
-| `PUT`  | `/api/check-ins/:date`                         | Cria ou substitui o registro do dia atual em UTC.                    |
-| `GET`  | `/api/check-ins/:date`                         | Consulta uma data da sessão; retorna 404 quando não existe.          |
-| `GET`  | `/api/check-ins?limit=7`                       | Histórico recente, com data decrescente; limite entre 1 e 90.        |
-| `GET`  | `/api/check-ins?from=2026-11-01&to=2026-12-01` | Calendário com início inclusivo e fim exclusivo; máximo de 366 dias. |
-| `GET`  | `/api/check-in-options`                        | Valores e rótulos das quatro escalas, lidos do banco.                |
+| `PUT`  | `/api/check-ins/:date`                         | Creates or replaces the current UTC day's record.                    |
+| `GET`  | `/api/check-ins/:date`                         | Retrieves a session date; returns 404 if it does not exist.          |
+| `GET`  | `/api/check-ins?limit=7`                       | Recent history, in descending date order; limit between 1 and 90.  |
+| `GET`  | `/api/check-ins?from=2026-11-01&to=2026-12-01` | Calendar with inclusive start and exclusive end; maximum of 366 days. |
+| `GET`  | `/api/check-in-options`                        | Values and labels for the four scales, read from the database.    |
 | `POST` | `/api/check-ins/:checkInId/actions/evaluate` | Generates or reuses the latest owned persisted insight and complete task checklist. |
 | `GET` | `/api/check-ins/:checkInId/actions` | Lists up to 90 actions, newest first, for an owned check-in. |
 | `PATCH` | `/api/check-in-actions/:actionId` | Acknowledges, completes or dismisses an owned pending action. |
 
-Contrato completo: [SPEC de check-ins](../docs/specs/check-ins-spec.md).
+Full contract: [Check-ins specification](../docs/specs/check-ins-spec.md).
 
-Exemplo de corpo do `PUT`:
+Example `PUT` body:
 
 ```json
 {
@@ -72,13 +72,13 @@ Exemplo de corpo do `PUT`:
 }
 ```
 
-O `PUT` retorna 200 tanto para criação quanto para substituição. A omissão de `description` remove o texto anterior. Campos desconhecidos e strings numéricas são rejeitados.
+`PUT` returns 200 for both creation and replacement. Omitting `description` removes the previous text. Unknown fields and numeric strings are rejected.
 
-### Organização das validações
+### Validation organization
 
-Em `src/check-ins/`, os contratos dos services são interfaces sem validações em `dto/`, com sufixos `.input.ts` e `.output.ts`. As classes com decorators de `class-validator` ficam em `requests/` (corpo), `query-params/` (query) e `path-params/` (rota). O `ValidationPipe` aplica essas validações na entrada HTTP; `class-transformer` converte o limite da query e normaliza a descrição.
+In `src/check-ins/`, service contracts are interfaces without validation, in `dto/`, with `.input.ts` and `.output.ts` suffixes. Classes with `class-validator` decorators are in `requests/` (body), `query-params/` (query), and `path-params/` (route). The `ValidationPipe` applies these validations to HTTP input; `class-transformer` converts the query limit and normalizes the description.
 
-Verificações de existência usam consultas ao banco e avaliam o resultado. Não há filtro customizado de exceções nem tratamento baseado em códigos do Prisma/PostgreSQL. Exceções inesperadas seguem a resposta HTTP 500 padrão do NestJS.
+Existence checks query the database and evaluate the result. There is no custom exception filter or handling based on Prisma/PostgreSQL codes. Unexpected exceptions use NestJS's default HTTP 500 response.
 
 ## Check-in actions
 
@@ -125,21 +125,21 @@ Send `{ "status": "acknowledged" }`, `{ "status": "completed" }` or `{ "status":
 
 GET returns `{ actions: [...] }`, including historical statuses, newest first (up to 90). Each task exposes its ID, check-in/evaluation IDs, `task_key`, `title`, `source`, `kind`, action/reason/ruleset codes, nullable canonical forecast snapshot, status and timestamps. The insight includes its ID, title, summary, `next_step`, facts, source/generator and supersession timestamps. Session IDs are never exposed.
 
-## Integração com o frontend
+## Frontend integration
 
-O servidor emite o cookie `mittus_session` assinado, com validade fixa de 30 dias. O frontend não precisa ler nem guardar seu valor. Sempre envie credenciais:
+The server issues the signed `mittus_session` cookie, with a fixed 30-day lifetime. The frontend does not need to read or store its value. Always send credentials:
 
 ```ts
 const API_URL = 'http://localhost:3001';
 
-// Estabeleça a sessão antes de disparar outras requisições em paralelo.
+// Establish the session before sending other requests in parallel.
 const response = await fetch(`${API_URL}/api/check-ins?limit=7`, {
   credentials: 'include',
 });
 if (!response.ok) throw new Error('Could not load check-ins.');
 const { items, today, timezone } = await response.json();
 
-// Use today retornado pelo backend, sem derivar a data do relógio local.
+// Use `today` returned by the backend; do not derive the date from the local clock.
 const saved = await fetch(`${API_URL}/api/check-ins/${today}`, {
   method: 'PUT',
   credentials: 'include',
@@ -153,12 +153,12 @@ const saved = await fetch(`${API_URL}/api/check-ins/${today}`, {
   }),
 });
 if (!saved.ok) throw new Error('Could not save check-in.');
-// Após salvar, refaça a consulta do intervalo visível do calendário.
+// After saving, refetch the calendar's visible date range.
 ```
 
-Configure `WEB_ORIGIN` para a origem real da interface. Cookies usam `SameSite=Lax`; frontend e API devem estar no mesmo site. As respostas não são armazenadas em cache compartilhado, e as consultas sempre usam a sessão validada no backend.
+Set `WEB_ORIGIN` to the interface's actual origin. Cookies use `SameSite=Lax`; the frontend and API must be on the same site. Responses are not stored in a shared cache, and queries always use the session validated by the backend.
 
-## Verificações
+## Checks
 
 ```bash
 pnpm test
@@ -166,17 +166,17 @@ pnpm lint
 pnpm build
 ```
 
-### Integração com PostgreSQL isolado
+### Isolated PostgreSQL integration
 
 HTTP and schema tests require a local PostgreSQL database named `mittus_test`, selected through `TEST_DATABASE_URL`. On its first run, the setup requires an empty public schema and replays the actual versioned SQL migrations, including lookup labels and the demo mission. It refuses to drop existing tables. Cleanup removes only records created by the tests.
 
-Exemplo de banco local com Docker (execute a criação do contêiner uma vez):
+Example of a local database with Docker (create the container once):
 
 ```bash
 docker run --name mittus-check-ins-test -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=mittus_test -p 127.0.0.1:55439:5432 -d postgres:17
 ```
 
-Após o PostgreSQL ficar pronto:
+After PostgreSQL is ready:
 
 ```bash
 TEST_DATABASE_URL='postgresql://postgres:postgres@127.0.0.1:55439/mittus_test' pnpm test:e2e
@@ -185,7 +185,7 @@ psql 'postgresql://postgres:postgres@127.0.0.1:55439/mittus_test' -v ON_ERROR_ST
 
 The setup emulates Supabase roles locally, then applies SQL files from `supabase/migrations` in filename order. Each file and its SHA-256 checksum are recorded atomically in the test-only `mittus_test_meta.migrations` table. Repeated runs preserve existing rows and skip unchanged files; changing an applied file requires a fresh isolated database. No `db push` or duplicate hand-maintained CHECK definitions are used.
 
-Os testes cobrem gravação/substituição, concorrência, isolamento entre sessões, cookies adulterados e expirados, UTC, calendário, validação, CORS e a resposta padrão do NestJS para falhas inesperadas.
+Tests cover saving/replacing, concurrency, session isolation, tampered and expired cookies, UTC, calendar, validation, CORS, and NestJS's default response to unexpected failures.
 
 Action coverage includes real PostgreSQL persistence, concurrent retries, cross-session access, stale inference, immediate invalidation after edits, recovery from predictor failure, status conflicts, snapshot preservation and description-only changes. Forecast/config unit tests cover invalid probabilities/timestamps, network failure and timeout handling.
 

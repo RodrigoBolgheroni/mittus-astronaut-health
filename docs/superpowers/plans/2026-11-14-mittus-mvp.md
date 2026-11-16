@@ -1,128 +1,128 @@
-# Alinhamento do MVP do Mittus
+# Mittus MVP Alignment
 
-O Mittus é um **app web de acompanhamento de saúde para astronautas**. A proposta para a entrega é demonstrar um cenário de **fadiga antes do retorno à Terra**, ligando o check-in diário e a previsão experimental do Eres à recomendação e às tarefas geradas pela IA.
+Mittus is a **web app for astronaut health monitoring**. The proposed submission demonstrates a scenario of **fatigue before returning to Earth**, connecting the daily check-in and Eres experimental forecast to an AI-generated recommendation and tasks.
 
-## Funcionalidades propostas para a entrega
+## Proposed submission features
 
-| Parte | O que precisa funcionar |
+| Area | What needs to work |
 | --- | --- |
-| **Check-in diário** | Passar por estresse, humor, conflito na equipe, fadiga com horas de sono, descrição opcional e revisão. Usar carinhas Lucide nas escalas e aceitar um valor personalizado de sono em **Other hours**. Salvar a entrada e atualizar o histórico. |
-| **Home, corpo 3D e histórico** | Abrir o checklist na Home. Usar o ponto interativo no corpo para ver uma recomendação sobre desconforto. Consultar os gráficos alinhados de sono e fadiga e os registros recentes no histórico. |
-| **Previsão com ML** | Estimar a chance de o astronauta **relatar fadiga elevada no próximo check-in**. Mostrar a previsão experimental abaixo da recomendação da IA e identificar os dados simulados. |
-| **Recomendação e tarefas geradas pela IA** | A IA da Giulia recebe os dados do check-in e a previsão do Eres. Gera a recomendação em inglês para **Make sense of the changes** e as tarefas exibidas em **My plan**. |
-| **Contexto e cadastro de missão** | Abrir **Register a mission** pelo ícone do menu. O formulário cobre os dados da missão e os trechos de ida e retorno. No mapa, alternar entre as fases e ver posição, partida, destino e temperatura da cabine quando disponível. |
-| **Check-in Actions** | Neves registra as ações e controla seus estados. O astronauta abre o checklist pela Home ou pela recomendação. Em **My plan**, usa **Got it**, **Mark complete** ou **Dismiss**. |
+| **Daily check-in** | Complete stress, mood, team conflict, and fatigue ratings with sleep hours, an optional description, and a review step. Use Lucide faces for the scales and accept a custom sleep value through **Other hours**. Save the entry and update history. |
+| **Home, 3D body, and history** | Open the checklist from Home. Use the interactive body hotspot to view a discomfort recommendation. Review aligned sleep and fatigue charts and recent history entries. |
+| **Machine-learning forecast** | Estimate the chance that the astronaut will **report high fatigue at the next check-in**. Show the experimental forecast below the AI recommendation and identify simulated data. |
+| **AI-generated recommendation and tasks** | Giulia's AI receives the check-in data and Eres forecast. It generates the English recommendation for **Make sense of the changes** and the tasks shown in **My plan**. |
+| **Mission context and registration** | Open **Register a mission** from the menu icon. The form covers mission details and outbound and return legs. On the map, switch between phases and view position, departure, destination, and cabin temperature when available. |
+| **Check-in Actions** | Neves records actions and manages their states. The astronaut opens the checklist from Home or the recommendation. In **My plan**, they use **Got it**, **Mark complete**, or **Dismiss**. |
 
-As rotas, tabelas e responsabilidades por funcionalidade estão no [FEATURES.md](../../../FEATURES.md).
+Routes, tables, and feature owners are listed in [FEATURES.md](../../../FEATURES.md).
 
-O Human Research Program da NASA associa sono insuficiente e horários irregulares a riscos para o desempenho e a saúde. Use essa fonte para justificar por que o app acompanha sono e fadiga. Registre a origem dos dados, a forma de avaliação do modelo e a diferença entre a pesquisa da NASA e os dados simulados pela equipe. [NASA — Risk from Inadequate Sleep and Irregular Schedules](https://www.nasa.gov/reference/risk-from-inadequate-sleep-and-irregular-schedules/)
+NASA's Human Research Program links inadequate sleep and irregular schedules to risks to performance and health. Use this source to explain why the app monitors sleep and fatigue. Document the data source, model evaluation method, and the distinction between NASA research and the team's simulated data. [NASA — Risk from Inadequate Sleep and Irregular Schedules](https://www.nasa.gov/reference/risk-from-inadequate-sleep-and-irregular-schedules/)
 
-## Como demonstrar
+## Demo walkthrough
 
-1. Abrir o painel de um astronauta fictício em órbita e ver o histórico dos últimos dias.
-2. Completar o check-in com **Other hours** e uma descrição opcional. Salvar e conferir a entrada no histórico.
-3. Abrir a recomendação sobre desconforto pelo corpo e consultar os gráficos de sono e fadiga no histórico.
-4. Abrir **Make sense of the changes** e conferir a recomendação e a previsão do Eres.
-5. Usar **Open task checklist** para ver as tarefas. Acionar **Got it** e **Mark complete** e recarregar para conferir o status salvo.
-6. Abrir **Register a mission** pelo ícone do menu. Voltar ao mapa, selecionar **Retorno à Terra** e conferir o contexto.
+1. Open a fictional astronaut's dashboard in orbit and review the recent history.
+2. Complete the check-in using **Other hours** and an optional description. Save it and confirm the entry appears in history.
+3. Open the discomfort recommendation from the body view and review the sleep and fatigue charts in history.
+4. Open **Make sense of the changes** and review the recommendation and Eres forecast.
+5. Select **Open task checklist** to view the tasks. Use **Got it** and **Mark complete**, then reload to confirm the saved status.
+6. Open **Register a mission** from the menu icon. Return to the map, select **Return to Earth**, and review the context.
 
-## Como validar a entrega
+## Submission validation
 
-- [ ] O app abre em inglês na URL pública. Um jurado consegue concluir o fluxo em uma janela anônima.
-- [ ] O sono informado por **Other hours** e a descrição opcional aparecem no check-in salvo após recarregar. Os estados são legíveis por escrito, com navegação por teclado e leitura em tela pequena.
-- [ ] A previsão usa somente dados disponíveis até o check-in atual. Avaliar o modelo em cenários reservados para teste e compará-lo com uma regra simples, como repetir o nível de fadiga do último registro. Se o ML ainda estiver pendente no momento da entrega, demonstrar o fluxo com a regra e descrevê-la como tal.
-- [ ] A opção de missão no menu abre o cadastro. Conferir os dados da missão, os dois trechos e a mudança de fase no mapa.
-- [ ] A recomendação e as tarefas da IA usam os dados do check-in e a previsão do Eres. Testar o estado de histórico insuficiente na previsão.
-- [ ] Abrir o checklist pela Home e conferir que **Got it** salva `acknowledged`. Testar concluir, dispensar, recarregar e trocar de sessão.
-- [ ] Repetir a avaliação e conferir que ela reaproveita a ação. Corrigir o check-in e verificar a substituição de ações pendentes quando a avaliação mudar.
-- [ ] Demo e aba **Project** mostram o fluxo publicado e descrevem o uso da fonte da NASA e do ML conforme implementados. [Requisitos de entrega](../../../REQUISITOS-DE-ENTREGA.md)
+- [ ] The app opens in English at its public URL. A judge can complete the flow in a private browser window.
+- [ ] Sleep entered through **Other hours** and the optional description remain visible in the saved check-in after reloading. States are readable in text, navigable by keyboard, and usable on a small screen.
+- [ ] The forecast uses only data available up to the current check-in. Evaluate the model on held-out test scenarios and compare it with a simple rule, such as repeating the last recorded fatigue level. If ML is still pending at submission time, demonstrate the flow with the rule and describe it accurately.
+- [ ] The mission option in the menu opens registration. Check the mission details, both legs, and the map phase change.
+- [ ] The AI recommendation and tasks use the check-in data and Eres forecast. Test the insufficient-history forecast state.
+- [ ] Open the checklist from Home and confirm **Got it** saves `acknowledged`. Test completing, dismissing, reloading, and switching sessions.
+- [ ] Repeat an evaluation and confirm it reuses the action. Edit the check-in and verify pending actions are replaced when the evaluation changes.
+- [ ] The demo and **Project** tab show the deployed flow and describe how NASA sources and ML are used in the implementation. [Submission requirements](../../../SUBMISSION-REQUIREMENTS.md)
 
-## Depois do MVP
+## Beyond the MVP
 
-Integração com smartwatch, coleta por sensores, telemetria real da nave, mais contextos de missão e modelos para outros indicadores de saúde.
+Smartwatch integration, sensor data collection, real spacecraft telemetry, additional mission contexts, and models for other health indicators.
 
-## Pontos de integração
+## Integration points
 
-Agenda proposta em **horário de Brasília**, começando no **sábado, 14/11, às 14h**, e retomando no **domingo, 15/11, às 9h30**. A meta é enviar até **18h de domingo**. O prazo de **23h59** é o da plataforma. Rodrigo confere, no início, se Campinas comunicou alguma entrega local que precise acontecer antes. [Requisitos de entrega](../../../REQUISITOS-DE-ENTREGA.md)
+The proposed schedule is in **Brasília time**, starting on **Saturday, November 14 at 2:00 p.m.** and resuming on **Sunday, November 15 at 9:30 a.m.** The target submission time is **6:00 p.m. Sunday**. The platform deadline is **11:59 p.m.** At the start, Rodrigo checks whether Campinas has announced an earlier local submission requirement. [Submission requirements](../../../SUBMISSION-REQUIREMENTS.md)
 
-### Banco de dados — primeira entrega técnica
+### Database — first technical deliverable
 
-- **14h–14h25.** Luis e Neves alinham o contrato da API com o [esquema do Supabase](../../../FEATURES.md#banco-de-dados). Confirmem com Rodrigo e Gabi os campos exibidos no formulário e as escalas de humor e fadiga.
-- **14h25–15h15.** Neves configura a conexão no servidor. Luis prepara com Rodrigo um histórico fictício reproduzível. O backend calcula a previsão a partir de `check_ins` e registra o plano em `check_in_actions`. Os cenários da missão ficam na aplicação.
-- **Aceite às 15h15.** A migração roda em um banco vazio. O backend conecta, grava e lê um check-in fictício. A leitura pela sessão A encontra o registro e a leitura pela sessão B mantém o histórico isolado. Luis e Neves conferem que as credenciais ficam na configuração do servidor.
-- **Em paralelo.** Luigi monta o frontend com o JSON combinado às 14h25. Rodrigo trabalha com históricos sintéticos no mesmo formato. O frontend e a previsão passam a usar os dados do backend na integração.
+- **2:00–2:25 p.m.** Luis and Neves align the API contract with the [Supabase schema](../../../FEATURES.md#database). Confirm with Rodrigo and Gabi which fields appear in the form and the mood and fatigue scales.
+- **2:25–3:15 p.m.** Neves configures the server connection. Luis and Rodrigo prepare a reproducible fictional history. The backend calculates the forecast from `check_ins` and records the plan in `check_in_actions`. Mission scenarios remain in the application.
+- **Acceptance at 3:15 p.m.** The migration runs against an empty database. The backend connects, writes, and reads a fictional check-in. Reading through session A finds the record, while session B remains isolated. Luis and Neves confirm that credentials stay in server configuration.
+- **In parallel.** Luigi builds the frontend using the JSON agreed on at 2:25 p.m. Rodrigo works with synthetic histories in the same format. Frontend and forecast integration then use backend data.
 
-| Horário | O que o time precisa ter |
+| Time | Team deliverable |
 | --- | --- |
-| **Sáb., 14h–14h25 · 25 min** | Todos fecham o cenário da demo e escolhem a stack que já sabem publicar. Saem da reunião com um exemplo compartilhado no canal da equipe. Luis registra um check-in com data, horas de sono e escalas de humor e fadiga. Rodrigo acrescenta uma saída de previsão fictícia e a indicação de histórico insuficiente. Neves confirma como cada parte chega ao deploy. |
-| **Sáb., 15h15** | Luis e Neves verificam a migração, a conexão do backend e a gravação e leitura de um check-in por sessão. A partir desse teste, Luis liga o contrato da API ao banco. |
-| **Sáb., 16h** | Gabi entrega o wireframe e o asset 3D. Rodrigo compartilha o histórico fictício ampliado. Luis entrega os exemplos completos de resposta da API e Neves publica a primeira URL de teste. Luigi atualiza o protótipo com os exemplos enquanto a API real fica pronta. |
-| **Sáb., 20h** | Primeira versão integrada. Para testar, salvar um check-in, recarregar, mudar a fase e conferir a previsão, a recomendação e as tarefas do checklist. Cada falha sai com um responsável para domingo. |
-| **Dom., 11h30** | O time escolhe a versão da demo pelo que consegue executar na URL pública. Se a previsão falhar, avalia usar a regra de reserva. Até **12h30**, corrige apenas o que impede a jornada. |
-| **Dom., 15h30–18h** | Às 15h30, demo e página **Project** prontas para revisão. Teste como jurado até 17h e submissão até 18h. |
+| **Sat., 2:00–2:25 p.m. · 25 min** | The team finalizes the demo scenario and chooses a stack they already know how to deploy. The meeting ends with a shared example posted in the team channel. Luis records a check-in with a date, sleep hours, and mood and fatigue scales. Rodrigo adds a fictional forecast output and an insufficient-history state. Neves confirms how each component will be deployed. |
+| **Sat., 3:15 p.m.** | Luis and Neves verify the migration, backend connection, and session-scoped check-in write/read. Based on this test, Luis connects the API contract to the database. |
+| **Sat., 4:00 p.m.** | Gabi delivers the wireframe and 3D asset. Rodrigo shares the expanded fictional history. Luis delivers complete API response examples, and Neves publishes the first test URL. Luigi updates the prototype with the examples while the real API is being completed. |
+| **Sat., 8:00 p.m.** | First integrated version. Test by saving a check-in, reloading, changing the phase, and checking the forecast, recommendation, and checklist tasks. Assign an owner to each issue for Sunday. |
+| **Sun., 11:30 a.m.** | The team chooses the demo version based on what works at the public URL. If the forecast fails, consider using the fallback rule. Until **12:30 p.m.**, fix only issues that block the user journey. |
+| **Sun., 3:30–6:00 p.m.** | At 3:30 p.m., the demo and **Project** page are ready for review. Test as a judge until 5:00 p.m. and submit by 6:00 p.m. |
 
-No sábado, reservem **17h30–18h** para pausa. No domingo, reservem **12h30–13h30**. Os blocos abaixo vão até a revisão conjunta de domingo. Após as 17h, Rodrigo cuida do envio e cada pessoa fica disponível para corrigir um bloqueio da sua parte.
+On Saturday, reserve **5:30–6:00 p.m.** for a break. On Sunday, reserve **12:30–1:30 p.m.** The blocks below continue through Sunday's team review. After 5:00 p.m., Rodrigo handles submission, and everyone remains available to fix blockers in their area.
 
-### Gabi — Design e demo
+### Gabi — Design and demo
 
-| Quando | Tarefa e entrega |
+| When | Task and deliverable |
 | --- | --- |
-| **Sáb., 14h25–16h · 1h35** | Desenhar a sequência check-in → histórico → recomendação e previsão → checklist. Incluir o ponto de desconforto na Home e o cadastro de missão no menu. Escolher com Luigi uma figura 3D leve e licenciada e registrar a fonte. |
-| **Sáb., 16h–17h30 · 1h30** | Entregar a copy em inglês, a hierarquia do painel e os estados de formulário inválido, previsão indisponível e carregamento. Esboçar a demo. A proposta é usar slides em inglês com capturas da aplicação. |
-| **Sáb., 18h–20h · 2h** | Revisar o fluxo implementado com Luigi, em desktop e tela estreita. Conferir se os estados são legíveis, se o formulário é rápido de preencher e se o checklist é fácil de encontrar. |
-| **Dom., 9h30–12h30 · 3h** | Revisar as correções visuais e fechar o roteiro da demo com Rodrigo. Validar a sequência e os termos em inglês na versão escolhida às 11h30. |
-| **Dom., 13h30–15h30 · 2h** | Capturar telas da versão pública e publicar a demo. Incluir equipe, nomes, desafio, fonte NASA, check-in, painel, previsão, recomendação e checklist em **até sete slides**. Entregar o link a Rodrigo. |
+| **Sat., 2:25–4:00 p.m. · 1h 35m** | Design the check-in → history → recommendation and forecast → checklist sequence. Include the discomfort hotspot on Home and mission registration in the menu. Choose a lightweight, licensed 3D figure with Luigi and record its source. |
+| **Sat., 4:00–5:30 p.m. · 1h 30m** | Deliver English copy, dashboard hierarchy, and invalid-form, unavailable-forecast, and loading states. Sketch the demo. The proposal is an English slide deck with application screenshots. |
+| **Sat., 6:00–8:00 p.m. · 2h** | Review the implemented flow with Luigi on desktop and a narrow screen. Check that states are readable, the form is quick to complete, and the checklist is easy to find. |
+| **Sun., 9:30 a.m.–12:30 p.m. · 3h** | Review visual fixes and finalize the demo script with Rodrigo. Validate the flow and English terminology in the selected version at 11:30 a.m. |
+| **Sun., 1:30–3:30 p.m. · 2h** | Capture screenshots of the public version and publish the demo. Include the team and names, challenge, NASA source, check-in, dashboard, forecast, recommendation, and checklist in **up to seven slides**. Send Rodrigo the link. |
 
 ### Luigi — Frontend
 
-| Quando | Tarefa e entrega |
+| When | Task and deliverable |
 | --- | --- |
-| **Sáb., 14h25–16h · 1h35** | Criar a tela base e o formulário em inglês. Usar o exemplo de Luis para exibir histórico, gráfico e estado da previsão. Passar a URL de teste ou as instruções de execução a Neves. |
-| **Sáb., 16h–17h30 · 1h30** | Integrar a figura 3D com um ponto interativo e o botão textual. Montar o seletor de fase e o cartão de contexto da missão. |
-| **Sáb., 18h–20h · 2h** | Ligar cadastro e histórico à API de Luis. Após salvar, atualizar o gráfico e a previsão. Carregar o contexto conforme a fase escolhida e mostrar os estados de carregamento e falha. |
-| **Dom., 9h30–12h30 · 3h** | Reproduzir os problemas da primeira versão. Testar navegação por teclado, tela estreita, recarregamento, 3D indisponível e atualização do cartão após mudar de fase. Corrigir os bloqueios do fluxo. |
-| **Dom., 13h30–15h30 · 2h** | Preparar com Gabi as telas para captura. Acompanhar a versão pública e confirmar que o botão textual mantém o painel acessível se a cena 3D falhar. |
+| **Sat., 2:25–4:00 p.m. · 1h 35m** | Create the base screen and English form. Use Luis's example to display history, chart, and forecast state. Send Neves the test URL or run instructions. |
+| **Sat., 4:00–5:30 p.m. · 1h 30m** | Integrate the 3D figure with an interactive hotspot and text button. Build the phase selector and mission-context card. |
+| **Sat., 6:00–8:00 p.m. · 2h** | Connect registration and history to Luis's API. After saving, update the chart and forecast. Load context for the selected phase and show loading and failure states. |
+| **Sun., 9:30 a.m.–12:30 p.m. · 3h** | Reproduce issues from the first version. Test keyboard navigation, narrow screens, reloads, unavailable 3D, and card updates after phase changes. Fix flow blockers. |
+| **Sun., 1:30–3:30 p.m. · 2h** | Prepare screens for capture with Gabi. Monitor the public version and confirm the text button keeps the panel accessible if the 3D scene fails. |
 
-### Luis — API e persistência
+### Luis — API and persistence
 
-| Quando | Tarefa e entrega |
+| When | Task and deliverable |
 | --- | --- |
-| **Sáb., 14h25–15h15 · 50 min** | Verificar `check_ins` e `check_in_actions`. Preparar o histórico fictício com Rodrigo e testar gravação e leitura por sessão com Neves. |
-| **Sáb., 15h15–16h · 45 min** | Ligar os endpoints de cadastro e histórico ao banco. Publicar exemplos de respostas, incluindo a estrutura de avaliação e o contexto da missão. |
-| **Sáb., 16h–17h30 · 1h30** | Conferir gravação, consulta e entradas inválidas. Preparar o histórico inicial por sessão para que dois jurados possam repetir a demo sem interferir nos registros um do outro. |
-| **Sáb., 18h–20h · 2h** | Conectar a saída da previsão ao painel. Testar com Luigi um novo check-in, do envio ao painel atualizado. |
-| **Dom., 9h30–12h30 · 3h** | Repetir o teste com duas sessões independentes e uma entrada inválida. Corrigir problemas de persistência e padronizar a resposta quando o histórico ainda for insuficiente para a previsão. |
-| **Dom., 13h30–15h30 · 2h** | Documentar como iniciar a API e repetir o cenário. Conferir a documentação com Neves e verificar que o painel exibe a saída da previsão recebida da API. |
+| **Sat., 2:25–3:15 p.m. · 50 min** | Check `check_ins` and `check_in_actions`. Prepare fictional history with Rodrigo and test session-scoped writes and reads with Neves. |
+| **Sat., 3:15–4:00 p.m. · 45 min** | Connect registration and history endpoints to the database. Publish response examples, including the evaluation and mission-context structures. |
+| **Sat., 4:00–5:30 p.m. · 1h 30m** | Verify writes, queries, and invalid entries. Prepare initial history for each session so two judges can repeat the demo without interfering with each other's records. |
+| **Sat., 6:00–8:00 p.m. · 2h** | Connect forecast output to the dashboard. Test a new check-in with Luigi, from submission to the updated dashboard. |
+| **Sun., 9:30 a.m.–12:30 p.m. · 3h** | Repeat the test with two independent sessions and one invalid entry. Fix persistence issues and standardize the response when history is insufficient for the forecast. |
+| **Sun., 1:30–3:30 p.m. · 2h** | Document how to start the API and repeat the scenario. Review the documentation with Neves and confirm the dashboard displays forecast output received from the API. |
 
-### Neves — Check-in Actions e deploy
+### Neves — Check-in Actions and deployment
 
-Integrar as tarefas geradas pela IA ao Check-in Actions e cuidar do registro e das mudanças de status.
+Integrate AI-generated tasks with Check-in Actions and handle persistence and status changes.
 
-| Quando | Tarefa e entrega |
+| When | Task and deliverable |
 | --- | --- |
-| **Sáb., 14h25–15h15 · 50 min** | Provisionar o banco de desenvolvimento, configurar a conexão no servidor e testar com Luis a migração e o isolamento entre sessões. |
-| **Sáb., 15h15–16h · 45 min** | Publicar a primeira URL de teste. Configurar a conexão com o banco no ambiente publicado e alinhar com Rodrigo como a API executará o modelo de previsão. |
-| **Sáb., 16h–17h30 · 1h30** | Preparar o caminho do navegador até a API e testar o carregamento do contexto da missão. Anotar como restaurar a última versão funcional. |
-| **Sáb., 18h–20h · 2h** | Publicar frontend, API e serviços disponíveis. Verificar no deploy o acesso ao 3D, o registro, a previsão e o contexto da missão. Compartilhar o link de teste e o commit publicado. |
-| **Dom., 9h30–12h30 · 3h** | Testar a versão como visitante e simular a indisponibilidade da previsão. Às 11h30, apresentar ao time a versão funcional e o caminho de reserva testado. Publicar a versão escolhida até 12h30. |
-| **Dom., 13h30–15h30 · 2h** | Conferir em janela anônima o app, o acesso ao projeto e o link da demo assim que Gabi entregar. Enviar a Rodrigo os links finais. Usar a URL pública da hospedagem se o domínio próprio ainda estiver pendente. |
+| **Sat., 2:25–3:15 p.m. · 50 min** | Provision the development database, configure the server connection, and test the migration and session isolation with Luis. |
+| **Sat., 3:15–4:00 p.m. · 45 min** | Publish the first test URL. Configure the database connection in the deployed environment and align with Rodrigo on how the API will run the forecast model. |
+| **Sat., 4:00–5:30 p.m. · 1h 30m** | Prepare the browser-to-API path and test mission-context loading. Record how to restore the last working version. |
+| **Sat., 6:00–8:00 p.m. · 2h** | Deploy the frontend, API, and available services. Verify 3D access, registration, forecast, and mission context in the deployed version. Share the test link and deployed commit. |
+| **Sun., 9:30 a.m.–12:30 p.m. · 3h** | Test the version as a visitor and simulate forecast unavailability. At 11:30 a.m., show the team the working version and tested fallback path. Publish the selected version by 12:30 p.m. |
+| **Sun., 1:30–3:30 p.m. · 2h** | In a private browser window, check the app, project access, and demo link as soon as Gabi delivers them. Send Rodrigo the final links. Use the hosting provider's public URL if the custom domain is still pending. |
 
-### Rodrigo — Machine Learning e submissão
+### Rodrigo — Machine learning and submission
 
-| Quando | Tarefa e entrega |
+| When | Task and deliverable |
 | --- | --- |
-| **Sáb., 14h25–16h · 1h35** | Definir o alvo **fadiga elevada relatada no próximo check-in**. Preparar históricos sintéticos de sono, humor e fadiga, incluindo o exemplo comum da demo. Documentar a fonte NASA que fundamenta a escolha do indicador e informar a Luis o formato da previsão. |
-| **Sáb., 16h–17h30 · 1h30** | Treinar um modelo pequeno com dados disponíveis até o check-in atual. Reservar trajetórias simuladas diferentes para teste e comparar com a regra que repete o nível do último registro. Guardar os resultados e explicar as limitações dos dados simulados. |
-| **Sáb., 18h–20h · 2h** | Entregar a Luis e Neves a função de previsão, a regra de reserva e exemplos de saída para histórico suficiente e insuficiente. Verificar com Luigi que o painel exibe o resultado esperado. |
-| **Dom., 9h30–12h30 · 3h** | Testar o modelo no app, documentar qual abordagem entrou na versão escolhida e revisar o texto do resultado. Confirmar os seis membros e as instruções locais já levantadas no alinhamento de sábado. |
-| **Dom., 13h30–18h · 4h30** | Até 15h30, fechar a aba **Project** e o README em inglês, com fontes, links, dados simulados e declaração de uso de IA. Até 17h, testar o fluxo e os links com o time. Até 18h, clicar em **Submit for Judging** e conferir a confirmação. |
+| **Sat., 2:25–4:00 p.m. · 1h 35m** | Define the target as **high fatigue reported at the next check-in**. Prepare synthetic histories for sleep, mood, and fatigue, including the demo's common example. Document the NASA source supporting the indicator and tell Luis the forecast format. |
+| **Sat., 4:00–5:30 p.m. · 1h 30m** | Train a small model using data available up to the current check-in. Hold out different simulated trajectories for testing and compare against the rule that repeats the last recorded level. Save results and explain the limitations of simulated data. |
+| **Sat., 6:00–8:00 p.m. · 2h** | Deliver the forecast function, fallback rule, and sufficient- and insufficient-history output examples to Luis and Neves. Verify with Luigi that the dashboard displays the expected result. |
+| **Sun., 9:30 a.m.–12:30 p.m. · 3h** | Test the model in the app, document which approach is in the selected version, and review the result text. Confirm the six team members and the local instructions collected during Saturday's alignment. |
+| **Sun., 1:30–6:00 p.m. · 4h 30m** | By 3:30 p.m., finish the **Project** page and English README with sources, links, simulated data, and AI-use disclosure. By 5:00 p.m., test the flow and links with the team. By 6:00 p.m., click **Submit for Judging** and confirm submission. |
 
-### Giulia — IA de recomendação e tarefas
+### Giulia — AI recommendations and tasks
 
-- Gerar a recomendação em inglês e as tarefas do checklist a partir do check-in e da previsão do Eres.
-- Combinar com Neves como as tarefas chegam ao Check-in Actions. Conferir com Luigi a exibição da recomendação e das tarefas. Entregar a Rodrigo a descrição do uso de IA para a submissão.
+- Generate the English recommendation and checklist tasks from the check-in and Eres forecast.
+- Align with Neves on how tasks reach Check-in Actions. Review the recommendation and task display with Luigi. Give Rodrigo the AI-use description for the submission.
 
-### Revisão conjunta e envio
+### Team review and submission
 
-- **Dom., 15h30–17h · 1h30.** Gabi abre a URL em janela anônima e executa o fluxo sem instruções. Luigi confere a interação. Luis verifica o registro. Neves confere o Check-in Actions, o deploy e os links. Rodrigo compara a previsão com os dados. Giulia confere a recomendação e as tarefas. Ajustem os textos da demo e do portal conforme a versão que passou.
-- **Dom., 17h–18h · 1h.** Rodrigo submete e guarda a confirmação. Os demais resolvem eventuais falhas da sua parte. Se houver correção depois do envio, Rodrigo reenvia e confirma a versão final antes de 23h59.
+- **Sun., 3:30–5:00 p.m. · 1h 30m.** Gabi opens the URL in a private browser window and completes the flow without instructions. Luigi checks interactions. Luis verifies the record. Neves checks Check-in Actions, deployment, and links. Rodrigo compares the forecast with the data. Giulia checks the recommendation and tasks. Adjust the demo and portal copy to match the version that passed.
+- **Sun., 5:00–6:00 p.m. · 1h.** Rodrigo submits and saves the confirmation. Everyone else resolves issues in their area. If changes are made after submission, Rodrigo resubmits and confirms the final version before 11:59 p.m.

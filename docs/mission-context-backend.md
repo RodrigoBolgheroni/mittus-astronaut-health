@@ -1,42 +1,42 @@
-# Contexto da missão: posição da nave e fontes externas
+# Mission context: spacecraft position and external sources
 
-O cartão **Contexto da missão** mostra de onde o trecho parte, onde a nave está agora e para onde vai. O banco, as tabelas, a sessão e a missão demo estão em [Cadastro da missão — banco e API](missions-database.md). Este documento cobre a **posição**, que nunca é gravada: a rota consulta na hora.
+The **Mission Context** card shows where a leg starts, where the spacecraft is now, and where it is headed. The database, tables, session, and demo mission are described in [Mission registration — database and API](missions-database.md). This document covers **position**, which is never stored: the route looks it up on request.
 
-## De onde vem cada posição
+## Position sources
 
-| Ponto | Fonte | Cache |
+| Location | Source | Cache |
 | --- | --- | --- |
-| **ISS** (lugar `tracked`, partida ou destino) | `GET https://api.wheretheiss.at/v1/satellites/25544`, calculada a partir do TLE da ISS (NORAD) | 5 s por instância |
-| **Nave acoplada** (`in_orbit`) | A mesma posição da ISS | 5 s |
-| **Nave na volta** (`return_to_earth`) | Se `missions.norad_id` estiver preenchido: os elementos orbitais da nave em `GET https://celestrak.org/NORAD/elements/gp.php?CATNR={norad}&FORMAT=json`, propagados com SGP4 (`satellite.js`). Senão, o ponto simulado da config. | Elementos por 2 h, a posição é calculada a cada requisição |
-| **Lugares `fixed`** (plataforma, splashdown) | Como estão em `mission_places` | — |
+| **ISS** (`tracked` place, departure, or destination) | `GET https://api.wheretheiss.at/v1/satellites/25544`, calculated from the ISS TLE (NORAD) | 5 seconds per instance |
+| **Docked spacecraft** (`in_orbit`) | Same position as the ISS | 5 seconds |
+| **Spacecraft returning to Earth** (`return_to_earth`) | If `missions.norad_id` is set, the spacecraft's orbital elements are fetched from `GET https://celestrak.org/NORAD/elements/gp.php?CATNR={norad}&FORMAT=json` and propagated with SGP4 (`satellite.js`). Otherwise, the configured simulated point is used. | Elements cached for 2 hours; position recalculated on each request |
+| **`fixed` places** (launch pad, splashdown) | As stored in `mission_places` | — |
 
-A missão demo `demo-crew-12` não tem `norad_id`, então a volta usa o ponto simulado (`31.2, -121.4`, 180 km). As posições são **calculadas** a partir de dados públicos, com precisão de alguns km. A telemetria de bordo não é pública, e o cartão deve sempre mostrar `label` e `asOf`.
+The `demo-crew-12` mission has no `norad_id`, so its return leg uses the simulated point (`31.2, -121.4`, 180 km). Positions are **calculated** from public data, with accuracy of a few kilometers. Onboard telemetry is not public, and the card must always show `label` and `asOf`.
 
-## Configuração por fase (`web/src/lib/mission/mission-config.ts`)
+## Per-phase configuration (`web/src/lib/mission/mission-config.ts`)
 
-| Fase | `position.kind` | Comportamento |
+| Phase | `position.kind` | Behavior |
 | --- | --- | --- |
-| `in_orbit` | `iss_live` | A posição da nave é a da ISS |
-| `return_to_earth` | `tle_or_simulated` | TLE da CelesTrak se a missão tiver `norad_id`. Sem `norad_id`, ou se a CelesTrak falhar, usa o ponto simulado guardado na própria config. |
+| `in_orbit` | `iss_live` | The spacecraft position is the ISS position. |
+| `return_to_earth` | `tle_or_simulated` | Use the CelesTrak TLE if the mission has a `norad_id`. Without one, or if CelesTrak fails, use the simulated point stored in the config. |
 
-## Falhas
+## Failures
 
-Nenhuma falha de fonte externa derruba a rota:
+External-source failures do not cause the route to fail:
 
-- **wheretheiss.at fora do ar ou com `429`:** a rota devolve a última posição boa, com o `asOf` original, e espera 30 s antes de tentar de novo. Sem nenhuma posição boa, usa o snapshot `web/src/data/iss-position-snapshot.json`, com `source: "wheretheiss_snapshot"`.
-- **CelesTrak fora do ar:** a rota continua usando os últimos elementos baixados, enquanto tiverem menos de 3 dias, e tenta de novo a cada 10 min. Sem elementos, usa o ponto simulado e registra um aviso no log.
-- **Banco fora do ar:** a rota usa a missão demo embutida (ver [missions-database.md](missions-database.md)).
+- **wheretheiss.at unavailable or returns `429`:** the route returns the last good position, with its original `asOf`, and waits 30 seconds before retrying. If no good position exists, it uses the snapshot at `web/src/data/iss-position-snapshot.json`, with `source: "wheretheiss_snapshot"`.
+- **CelesTrak unavailable:** the route continues using the latest downloaded elements while they are less than 3 days old, and retries every 10 minutes. If there are no elements, it uses the simulated point and logs a warning.
+- **Database unavailable:** the route uses the built-in demo mission (see [missions-database.md](missions-database.md)).
 
-## Contrato (campos de posição)
+## Position field contract
 
-- **`location.source`:** `wheretheiss`, `wheretheiss_snapshot`, `celestrak_tle` ou `simulated`.
-- **`departure.coordinates.source` e `destination.coordinates.source`:** `wheretheiss` ou `wheretheiss_snapshot` para a ISS; `ll2`, `mission_registration` ou `manual` para pontos fixos; `simulated` para pontos inventados.
-- **`sourceUrl`:** a URL da wheretheiss.at, a da CelesTrak com o NORAD ou a da origem do lugar fixo.
+- **`location.source`:** `wheretheiss`, `wheretheiss_snapshot`, `celestrak_tle`, or `simulated`.
+- **`departure.coordinates.source` and `destination.coordinates.source`:** `wheretheiss` or `wheretheiss_snapshot` for the ISS; `ll2`, `mission_registration`, or `manual` for fixed points; `simulated` for generated points.
+- **`sourceUrl`:** the wheretheiss.at URL, the CelesTrak URL with the NORAD ID, or the fixed location's source URL.
 
-Antes, as fontes da ISS eram `nasa_iss_oem` e `nasa_iss_oem_snapshot`. O arquivo OEM da NASA e o parser dele foram removidos.
+Previously, the ISS sources were `nasa_iss_oem` and `nasa_iss_oem_snapshot`. The NASA OEM file and its parser have been removed.
 
-Exemplo de `location` em `in_orbit`:
+Example `location` in `in_orbit`:
 
 ```json
 {
@@ -47,34 +47,34 @@ Exemplo de `location` em `in_orbit`:
 }
 ```
 
-Com `norad_id = 100882` (Crew Dragon da Crew-13, acoplada hoje), a volta devolveu `source: "celestrak_tle"`, com a posição a poucos km da ISS, como esperado para uma nave acoplada.
+With `norad_id = 100882` (Crew Dragon from Crew-13, currently docked), the return position came back with `source: "celestrak_tle"` and is within a few kilometers of the ISS, as expected for a docked spacecraft.
 
-## Código
+## Code
 
-| Arquivo | O que faz |
+| File | Purpose |
 | --- | --- |
-| `web/src/lib/mission/wheretheiss.ts` | Valida a resposta da API e lê a posição da ISS (cache de 5 s, timeout de 5 s, fallback) |
-| `web/src/lib/mission/celestrak.ts` | Baixa o OMM da nave e calcula a posição com SGP4. Recusa elementos com mais de 3 dias. |
-| `web/src/lib/mission/cached-source.ts` | Cache em memória com deduplicação, espera depois de falha e última posição boa |
-| `web/src/lib/mission/live-position.ts` | Instâncias compartilhadas dos dois leitores |
-| `web/src/lib/mission/mission-context.ts` | Escolhe a fonte da posição por fase e monta a resposta |
-| `web/src/lib/mission/mission-registry.ts`, `mission-store.ts` | Leem `missions.norad_id` junto com o trecho |
+| `web/src/lib/mission/wheretheiss.ts` | Validates the API response and reads the ISS position (5-second cache, 5-second timeout, fallback). |
+| `web/src/lib/mission/celestrak.ts` | Downloads the spacecraft OMM and calculates its position with SGP4. Rejects elements older than 3 days. |
+| `web/src/lib/mission/cached-source.ts` | In-memory cache with deduplication, backoff after failures, and last known good position. |
+| `web/src/lib/mission/live-position.ts` | Shared instances of both readers. |
+| `web/src/lib/mission/mission-context.ts` | Selects the position source by phase and builds the response. |
+| `web/src/lib/mission/mission-registry.ts`, `mission-store.ts` | Read `missions.norad_id` together with the mission leg. |
 
-**Dependência nova:** `satellite.js@7.1.0`. **Rede:** o servidor precisa de saída HTTPS para `api.wheretheiss.at` e `celestrak.org`. Não há variáveis de ambiente novas.
+**New dependency:** `satellite.js@7.1.0`. **Network:** the server needs outbound HTTPS access to `api.wheretheiss.at` and `celestrak.org`. No new environment variables are required.
 
-## Submissão (campo NASA Data)
+## Submission (NASA Data field)
 
-As posições vêm de dados do NORAD (wheretheiss.at e CelesTrak), e a partida vem da Launch Library 2, um catálogo comunitário. Essas fontes **não contam como dados da NASA** e devem ser citadas em **Space Agency Partner Data and Other References**.
+Positions come from NORAD data (wheretheiss.at and CelesTrak), and the launch location comes from Launch Library 2, a community catalog. These sources **do not count as NASA data** and must be cited under **Space Agency Partner Data and Other References**.
 
 NASA references include Human Research Program sleep/fatigue research, the Crew-12 profile and the historical cabin sample in `web/src/data/iss-cabin-temperature.json`: RR-1 (SpaceX-4), 22.8 °C at 2014-10-01 00:00:00 GMT. The value is `temperature_iss` in the [official RR-1 telemetry response](https://visualization.osdr.nasa.gov/eda/dashboard_RR-1); NASA Data Tables identifies its columns as `Temp_degC_ISS` and `Controller_Time_GMT`. GMT is stored as UTC. This is a historical 2014 sample, never a live cabin reading.
 
-## Como testar
+## How to test
 
 ```bash
 cd web
-npm test        # wheretheiss, CelesTrak/SGP4, cache, cadastro, sessão e distância
+npm test        # wheretheiss, CelesTrak/SGP4, cache, registration, session, and distance
 npx tsc --noEmit -p . && npx eslint src && npx next build
-npm run dev     # sem DATABASE_URL, a rota usa a missão demo embutida
+npm run dev     # without DATABASE_URL, the route uses the built-in demo mission
 curl "http://localhost:3000/api/mission-context?phase=in_orbit"         # location.source: "wheretheiss"
 curl "http://localhost:3000/api/mission-context?phase=return_to_earth"  # location.source: "simulated"
 ```
