@@ -1,0 +1,13 @@
+# Frontend-only Vercel deploy. The project's Root Directory is `web`; `ml` is
+# uploaded too because web/package.json depends on "file:../ml".
+/backend
+/db
+/supabase
+/docs
+/assets
+/.claude
+*.pdf
+**/node_modules
+**/.next
+**/.env*
+!**/.env.example
