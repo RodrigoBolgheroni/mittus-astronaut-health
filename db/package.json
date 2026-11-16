@@ -1,0 +1,15 @@
+{
+  "name": "mittus-db-seed",
+  "private": true,
+  "type": "module",
+  "description": "Reproducible demo and synthetic data load for the Mittus Supabase database.",
+  "scripts": {
+    "seed:dry": "node seed.mjs",
+    "seed:check": "node seed.mjs --check",
+    "seed:apply": "node seed.mjs --apply",
+    "seed:reset": "node seed.mjs --reset"
+  },
+  "dependencies": {
+    "pg": "8.13.1"
+  }
+}
