@@ -82,7 +82,7 @@ export function AppShell({
       </div>
 
       <div
-        className="relative mx-auto flex w-full max-w-(--canvas-width) flex-col gap-gap px-4 py-4
+        className="relative mx-auto flex w-full max-w-(--canvas-width) flex-col gap-gap px-4 pt-4 pb-[calc(88px+env(safe-area-inset-bottom))]
           canvas:block canvas:h-(--canvas-height) canvas:max-w-none canvas:w-(--canvas-width) canvas:p-0"
       >
         <Navigation active={active} />
