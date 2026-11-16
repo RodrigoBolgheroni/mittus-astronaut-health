@@ -168,7 +168,7 @@ describe('Replayed database contract', () => {
           create: [
             {
               evaluationKey: 'schema-v1',
-              taskKey: 'review-check-in',
+              taskKey: 'review_check_in',
               title: 'Review the recorded check-in',
               source: 'check_in',
               kind: 'review_insight',
@@ -178,7 +178,7 @@ describe('Replayed database contract', () => {
             },
             {
               evaluationKey: 'schema-v1',
-              taskKey: 'review-system',
+              taskKey: 'review_system',
               title: 'Review the system guidance',
               source: 'system',
               actionCode: 'monitor',
@@ -193,8 +193,8 @@ describe('Replayed database contract', () => {
     try {
       expect(checkIn.actions).toHaveLength(2);
       expect(checkIn.actions.map((action) => action.taskKey).sort()).toEqual([
-        'review-check-in',
-        'review-system',
+        'review_check_in',
+        'review_system',
       ]);
       expect(checkIn.actions.every((action) => action.forecastSnapshot === null)).toBe(true);
       expect(checkIn.actions.every((action) => action.status === 'suggested')).toBe(true);
@@ -211,11 +211,11 @@ describe('Replayed database contract', () => {
           checkInId_evaluationKey_taskKey: {
             checkInId: checkIn.id,
             evaluationKey: 'schema-v1',
-            taskKey: 'review-check-in',
+            taskKey: 'review_check_in',
           },
         },
       });
-      expect(task.id).toBe(checkIn.actions.find((action) => action.taskKey === 'review-check-in')?.id);
+      expect(task.id).toBe(checkIn.actions.find((action) => action.taskKey === 'review_check_in')?.id);
     } finally {
       await prisma.checkIn.delete({ where: { id: checkIn.id } });
     }
